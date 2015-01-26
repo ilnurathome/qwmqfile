@@ -118,22 +118,24 @@ int parseMQRFHeader2(char *pszDataPointer, QHash<QString, QString> &props)
     PMQCHAR pNameValueData;                       /* ptr to RFH2 NameValeData  */
     bool foundFolder=false;                       /* found folder              */
 
-    if (memcmp(pRFH2->StrucId, MQRFH_STRUC_ID, 4) == 0) {
+    if (memcmp(pRFH2->StrucId, MQRFH_STRUC_ID, sizeof(MQINT32)) == 0) {
         qDebug() << "parseMQRFHeader2::pRFH2->Version=" << pRFH2->Version;
         if (pRFH2->Version == MQRFH_VERSION_2) {
             qDebug() << "parseMQRFHeader2::pRFH2->StrucLength=" << pRFH2->StrucLength;
-            if (pRFH2->StrucLength > MQRFH_STRUC_LENGTH_FIXED_2 + 4)
+            if (pRFH2->StrucLength > MQRFH_STRUC_LENGTH_FIXED_2 + sizeof(MQINT32))
             {
-                pNameValueData = msgBuf + MQRFH_STRUC_LENGTH_FIXED_2 + 4;
+                pNameValueData = msgBuf + MQRFH_STRUC_LENGTH_FIXED_2 + sizeof(MQINT32);
+                QByteArray tba(pNameValueData, pRFH2->StrucLength - sizeof(MQINT32) - MQRFH_STRUC_LENGTH_FIXED_2);
+                qDebug() << "parseMQRFHeader2::tba=" << tba;
 
                 while (pNameValueData - msgBuf < pRFH2->StrucLength) {
                     /* Don't risk causing a SIGBUS, memcpy the four bytes             */
-                    memcpy(&nameValueLength, msgBuf + MQRFH_STRUC_LENGTH_FIXED_2, 4);
+                    memcpy(&nameValueLength, pNameValueData-4, 4);
                     qDebug() << "parseMQRFHeader2::nameValueLength=" << nameValueLength;
 
-                    qDebug() << "parseMQRFHeader2::pNameValueData=" << (int)pNameValueData << "; pNameValueData - msgBuf" << (int)(pNameValueData - msgBuf);
+                    qDebug() << "parseMQRFHeader2::pNameValueData=" << (long)pNameValueData << "; pNameValueData - msgBuf" << (long)(pNameValueData - msgBuf);
 
-                    QByteArray ba(pNameValueData, nameValueLength-2);
+                    QByteArray ba(pNameValueData, nameValueLength);
                     qDebug() << "parseMQRFHeader2::ba=" << ba;
 
                     QXmlStreamReader xml(ba);
@@ -171,11 +173,8 @@ int parseMQRFHeader2(char *pszDataPointer, QHash<QString, QString> &props)
                             xml.skipCurrentElement();
                         }
                     }
-                    if (xml.hasError()) {
-                        qDebug() << "parseMQRFHeader2::xml.hasError():" << xml.errorString();
-                    }
 
-                    pNameValueData += nameValueLength - 2;
+                    pNameValueData += nameValueLength;
                 }
             }
         }

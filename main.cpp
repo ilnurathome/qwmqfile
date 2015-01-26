@@ -130,7 +130,8 @@ int test_wmq2wmq(int argc, char *argv[])
 
     WMQConnectionFactory connectionFactory;
     connectionFactory.setQueueManagerName("TEST.QM");
-    connectionFactory.setConnectionName("devmod01v(1414)");
+//    connectionFactory.setConnectionName("devmod01v(1414)");
+    connectionFactory.setConnectionName("192.168.56.3(1414)");
     connectionFactory.setChannelName("JAVA.CHANNEL");
 
     ConnectionPool pool;
@@ -149,7 +150,7 @@ int test_wmq2wmq(int argc, char *argv[])
 
     qDebug() << "Create producer 1";
     WMQProducer producer((iConnectionFactory *)&pool);
-    producer.setQueueName("Q");
+    producer.setQueueName("Q1");
     producer.setMaxWorkers(1);
     producer.init();
 
