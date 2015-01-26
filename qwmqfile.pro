@@ -9,8 +9,10 @@ QT       += core concurrent script
 QT       -= gui
 
 TARGET = qwmqfile
-CONFIG   += console concurrent testcase
+CONFIG   += console concurrent
 CONFIG   -= app_bundle
+
+#QMAKE_CXXFLAGS += -std=c++11
 
 TEMPLATE = app
 
@@ -39,13 +41,23 @@ HEADERS += \
     qqueueproducer.h \
     qqueueconsumer.h \
     qqueueconsumerproducer.h \
-    errormessage.h
+    errormessage.h \
+    common.h
+
 
 win32:INCLUDEPATH += "C:/Program Files/IBM/WebSphere MQ/tools/cplus/include" \
 "c:/Program Files/IBM/WebSphere MQ/tools/c/include"
 
 win32:LIBS += "c:/Program Files/IBM/WebSphere MQ/tools/Lib/imqb23vn.Lib" \
 "c:/Program Files/IBM/WebSphere MQ/tools/Lib/imqc23vn.Lib"
+
+unix:INCLUDEPATH += /opt/mqm/inc
+unix:LIBS += /opt/mqm/lib64/libmqic_r.so \
+/opt/mqm/lib64/libmqe_r.so \
+/opt/mqm/lib64/libmqecs_r.so \
+/opt/mqm/lib64/libmqm_r.so \
+/opt/mqm/lib64/4.1/libimqb23gl_r.so \
+/opt/mqm/lib64/4.1/libimqc23gl_r.so
 
 OTHER_FILES += \
     context.qs

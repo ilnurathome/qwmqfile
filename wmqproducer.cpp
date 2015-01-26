@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <QByteArray>
 #include <QDebug>
-#include <QtConcurrent/QtConcurrent>
 #include <cmqpsc.h>
 #include "wmqproducer.h"
 
@@ -32,53 +31,61 @@ void WMQProducer::setQueueName(const QString &value)
 
 void WMQProducer::produce(Message msg)
 {
-    //doSend(msg);
-    //emit produced(msg);
-    while (workers.at(nextRoundRobbin())->doSend(msg) != true) {}
+    while (true) {
+        if (workers.at(nextRoundRobbin())->doSend(msg))
+            break;
+    }
 }
 
 void WMQProducer::workerProduced(Message msg)
 {
+    msg.setHeader("emiter", "WMQProducer");
     emit produced(msg);
 }
 
 void WMQProducer::getError(Message message, QString err)
 {
-    QMessageLogger().critical() << "WMQProducer got error while proccesing message: " << &message << ", err: " << err;
+    qCritical() << "WMQProducer got error while proccesing message: " << &message << ", err: " << err;
     emit rollback(message);
 }
 
 
 void WMQProducer::init()
 {
+    commiterThread = new QThread();
+    commiter->moveToThread(commiterThread);
 
     for (int i=0; i<maxWorkers; i++) {
         QThread* thread = new QThread();
         WMQProducerThread* worker = new WMQProducerThread(connectionFactory);
         worker->setWorkerNumber(i);
-        //        worker->setQueueName(QString("Q%1").arg(i));
         worker->setQueueName(queueName);
         worker->moveToThread(thread);
-
-        qDebug() << "Worker queue:" << worker->getQueueName();
 
         threads.append(thread);
         workers.append(worker);
 
-        QObject::connect(worker, SIGNAL(sended(Message)), this, SLOT(workerProduced(Message)), Qt::QueuedConnection);
+        QObject::connect(worker, SIGNAL(sended(Message)), commiter, SLOT(commit(Message)), Qt::QueuedConnection);
         QObject::connect(worker, SIGNAL(error(Message,QString)), this, SLOT(getError(Message,QString)), Qt::QueuedConnection);
 
         thread->start();
     }
+
+    commiterThread->start();
+}
+
+QObject *WMQProducer::getCommiter()
+{
+    return commiter;
 }
 
 
-long WMQProducer::getMaxWorkers() const
+int WMQProducer::getMaxWorkers() const
 {
     return maxWorkers;
 }
 
-void WMQProducer::setMaxWorkers(long value)
+void WMQProducer::setMaxWorkers(int value)
 {
     maxWorkers = value;
 }
@@ -94,13 +101,14 @@ void WMQProducer::setConnectionFactory(iConnectionFactory *value)
 }
 WMQProducer::WMQProducer(): workerCounter(0)
 {
-
+    commiter = new WMQProducerCommiter();
 }
 
 WMQProducer::WMQProducer(iConnectionFactory* connectionFactory): workerCounter(0)
 {
     this->connectionFactory = connectionFactory;
     maxWorkers = 4;
+    commiter = new WMQProducerCommiter();
 }
 
 WMQProducer::~WMQProducer()
@@ -128,14 +136,9 @@ QByteArray* buildMQRFHeader2(Message msg)
     if (!result)
         return NULL;
 
-    //    qDebug() << "Creating RFH2";
-    //MQRFH2 RFHeader = {MQRFH2_DEFAULT};
     MQRFH2 RFHeader = {{MQRFH_STRUC_ID_ARRAY}, MQRFH_VERSION_2,MQRFH_STRUC_LENGTH_FIXED_2,
                        MQENC_NATIVE, MQCCSI_INHERIT, {MQFMT_NONE_ARRAY},
                        MQRFH_NONE, 1208};
-
-    //memcpy( RFHeader.Format, MQFMT_STRING, (size_t)MQ_FORMAT_LENGTH);
-    //RFHeader.Format = {MQFMT_STRING_ARRAY};
 
     QString pscValueString;
     QString pscrValueString;
@@ -252,87 +255,6 @@ QByteArray* buildMQRFHeader2(Message msg)
     return result;
 }
 
-int WMQProducer::doSend(Message message)
-{
-    ImqQueue queue;
-    ImqMessage msg;
-
-    iConnection* conn = connectionFactory->getConnection();
-
-    queue.setConnectionReference(((WMQConnection*)conn)->getImqQueueManager());
-
-    queue.setName(queueName.toStdString().c_str());
-    queue.setOpenOptions(MQOO_OUTPUT /* open queue for output        */
-                         + MQOO_FAIL_IF_QUIESCING);  /* but not if MQM stopping      */
-    queue.open();
-
-    if (queue.reasonCode()) {
-        QMessageLogger(__FILE__, __LINE__, 0).critical() << "ImqQueue::open ended with reason code " << (int)queue.reasonCode();
-        return -1;
-    }
-
-    if (queue.completionCode()) {
-        QMessageLogger(__FILE__, __LINE__, 0).critical() << "ImqQueue::open ended with reason code " << (int)queue.completionCode();
-        return -1;
-    }
-
-    QByteArray* bodyArray = new QByteArray();
-
-    if (bodyArray != NULL) {
-        QByteArray *rfh2Header = buildMQRFHeader2(message);
-
-        if (rfh2Header) {
-            //            qDebug() << "Append rfh2 header to bodyArray ";// << rfh2Header->toHex();
-            bodyArray->append(*rfh2Header);
-            msg.setFormat(MQFMT_RF_HEADER_2);
-        } else {
-            msg.setFormat(MQFMT_STRING);
-        }
-
-        //        qDebug() << "bodyArray size: " << bodyArray->size();
-
-        // FIXME create message type converter
-        QFile* file =(QFile*)message.getBody();
-        if (file) {
-            //            qDebug() << "File name: " << file->fileName();
-
-            if(file->open(QIODevice::ReadOnly)) {
-                bodyArray->append(file->readAll());
-                file->close();
-            }
-        }
-
-        msg.setMessageType(MQMT_DATAGRAM);
-        msg.setPersistence(MQPER_PERSISTENT);
-
-        //        qDebug() << "Write body to message: " << bodyArray->size();// << endl << bodyArray->toHex();
-        //msg.useFullBuffer(bodyArray->constData(), bodyArray->size());
-        msg.write(bodyArray->size(), bodyArray->constData());
-
-        if(!queue.put(msg)) {
-            QMessageLogger(__FILE__, __LINE__, 0).critical() << "ImqQueue::put ended with reason code " << (int)queue.reasonCode();
-            return -1;
-        }
-
-        delete bodyArray;
-
-        if (rfh2Header)
-            delete rfh2Header;
-
-        msg.clearMessage();
-    } else {
-        QMessageLogger(__FILE__, __LINE__, 0).critical() << "bodyArray is NULL";
-        return -1;
-    }
-
-    queue.close();
-    connectionFactory->releaseConnection(conn);
-
-    return 0;
-}
-
-
-
 QString WMQProducerThread::getQueueName() const
 {
     return queueName;
@@ -372,6 +294,8 @@ bool WMQProducerThread::doSend(Message msg)
     }
 
     inuse = true;
+
+    msg.setHeader("emiter", "WMQProducerThread");
     emit got(msg);
 
     return true;
@@ -383,15 +307,11 @@ void WMQProducerThread::send(Message message)
         connection = connectionFactory->getConnection();
 
     if (!connection) {
-        //        qDebug() << "WMQProducerThread::send: no connection";
-        //        ErrorMessage errmsg;
-        //        errmsg.setErrorCode(0);
-        //        errmsg.setErrorString("can't get connection");
-        //        emit error(message, errmsg);
+        message.setHeader("emiter", "WMQProducerThread");
         emit error(message, "can't get connection");
         return;
     }
-    qDebug() << "WMQProducerThread::send: " << message.getHeaders().value("FileName") << ", workerNumber:" << workerNumber;
+//    qDebug() << "WMQProducerThread::send: " << message.getHeaders().value("FileName") << ", workerNumber:" << workerNumber;
 
     ImqMessage msg;
 
@@ -405,12 +325,13 @@ void WMQProducerThread::send(Message message)
         queue.open();
 
         if (queue.reasonCode()) {
-            QMessageLogger(__FILE__, __LINE__, 0).critical() << "ImqQueue::open ended with reason code " << (int)queue.reasonCode();
-            QMessageLogger(__FILE__, __LINE__, 0).critical() << "ImqQueue::open ended with reason code " << (int)queue.completionCode();
+            qCritical() << "ImqQueue::open ended with reason code " << (int)queue.reasonCode();
+            qCritical() << "ImqQueue::open ended with reason code " << (int)queue.completionCode();
             //        ErrorMessage errmsg;
             //        errmsg.setErrorCode(0);
             //        errmsg.setErrorString("ImqQueue::open error");
             //        emit error(message, errmsg);
+            message.setHeader("emiter", "WMQProducerThread");
             emit error(message, QString("ImqQueue::open error with reason code %1").arg((int)queue.reasonCode()));
             return;
         }
@@ -479,3 +400,30 @@ void WMQProducerThread::send(Message message)
     inuse = false;
 }
 
+QScriptValue WMQProducerCommiterConstructor(QScriptContext *context, QScriptEngine *engine)
+{
+    QObject *object = new WMQProducerCommiter();
+    return engine->newQObject(object, QScriptEngine::ScriptOwnership);
+}
+
+bool WMQProducerCommiter::initScriptEngine(QScriptEngine &engine)
+{
+    QScriptValue ctor = engine.newFunction(WMQProducerCommiterConstructor);
+    QScriptValue metaObject = engine.newQMetaObject(&WMQProducerCommiter::staticMetaObject, ctor);
+    engine.globalObject().setProperty("WMQProducerCommiter", metaObject);
+    return true;
+}
+
+void WMQProducerCommiter::commit(Message msg)
+{
+//    qDebug() << "WMQProducerCommiter::commit : " << msg.getHeaders().value("FileName");
+//    msg.setHeader("emiter", "WMQProducerCommiter");
+    emit commited(msg);
+}
+
+void WMQProducerCommiter::rollback(Message msg)
+{
+//    qDebug() << "WMQProducerCommiter::rollback";
+//    msg.setHeader("emiter", "WMQProducerCommiter");
+    emit rollbacked(msg);
+}

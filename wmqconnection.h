@@ -34,6 +34,15 @@ public:
     int begin();
     int commit();
     int rollback();
+
+    QString getChannelName() const;
+    void setChannelName(const QString &value);
+    int getTransportType() const;
+    void setTransportType(int value);
+    QString getConnectionName() const;
+    void setConnectionName(const QString &value);
+    QString getQueueManagerName() const;
+    void setQueueManagerName(const QString &value);
 };
 
 class WMQConnectionFactory : public QObject, public iConnectionFactory

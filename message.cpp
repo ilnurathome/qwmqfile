@@ -28,11 +28,21 @@ QString Message::getHeader(QString& key)
     return headers.value(key);
 }
 
+
+QString Message::getEmiter() const
+{
+    return emiter;
+}
+
+void Message::setEmiter(const QString &value)
+{
+    emiter = value;
+}
 Message::Message(Message* msg)
 {
     if(msg)
         msgbody = msg->getBody();
-//    qDebug() << "Message constructed";
+    //    qDebug() << "Message constructed";
 }
 
 Message::~Message()

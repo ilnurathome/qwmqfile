@@ -4,14 +4,15 @@
 #include <QFile>
 #include "message.h"
 
-class FileMessage : protected Message
+class FileMessage : public Message
 {
-    QFile f;
+    QFile* f;
 public:
     explicit FileMessage(Message *parent = 0);
 
-    void setBody(QFile& file);
+    void setBody(QFile* file);
     virtual QObject* getBody();
+    QFile* getFile();
 };
 
 #endif // FILEMESSAGE_H

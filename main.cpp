@@ -2,6 +2,7 @@
 #include <QFileSystemWatcher>
 #include <QDebug>
 #include <QScriptEngine>
+#include "common.h"
 #include "message.h"
 #include "fileconsumer.h"
 #include "wmqproducer.h"
@@ -23,17 +24,33 @@ bool qTimerInitScriptEngine(QScriptEngine &engine)
         return true;
 }
 
+QScriptValue qThreadConstructor(QScriptContext *context, QScriptEngine *engine)
+{
+    QObject *object = new QThread();
+    return engine->newQObject(object, QScriptEngine::ScriptOwnership);
+}
+
+
+bool qThreadInitScriptEngine(QScriptEngine &engine)
+{
+        QScriptValue ctor = engine.newFunction(qThreadConstructor);
+        QScriptValue metaObject = engine.newQMetaObject(&QThread::staticMetaObject, ctor);
+        engine.globalObject().setProperty("QThread", metaObject);
+        return true;
+}
+
+QScriptEngine* myEngine;
+
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
     qRegisterMetaType<Message>("Message");
-    QScriptEngine myEngine;
 
     QString scriptName = "context.qs";
 
     QFile scriptFile(scriptName);
     if (!scriptFile.open(QIODevice::ReadOnly)) {
-        QMessageLogger().critical() << "Context script cannot be opened";
+        qCritical() << "Context script cannot be opened";
         return -1;
     }
 
@@ -41,39 +58,49 @@ int main(int argc, char *argv[])
     QString contents = stream.readAll();
     scriptFile.close();
 
-    FileConsumer::initScriptEngine(myEngine);
-    WMQConnectionFactory::initScriptEngine(myEngine);
-    ConnectionPool::initScriptEngine(myEngine);
-    WMQProducer::initScriptEngine(myEngine);
-    qTimerInitScriptEngine(myEngine);
+    myEngine = new QScriptEngine();
 
-    myEngine.evaluate(contents, scriptName);
+    FileConsumer::initScriptEngine(*myEngine);
+    FileConsumerCommiter::initScriptEngine(*myEngine);
+    WMQConnectionFactory::initScriptEngine(*myEngine);
+    ConnectionPool::initScriptEngine(*myEngine);
+    WMQProducer::initScriptEngine(*myEngine);
+    WMQProducerCommiter::initScriptEngine(*myEngine);
+    qTimerInitScriptEngine(*myEngine);
+    qThreadInitScriptEngine(*myEngine);
 
-    if(myEngine.hasUncaughtException()) {
-        QMessageLogger().critical() << myEngine.uncaughtException().toString();
+    myEngine->evaluate(contents, scriptName);
+
+    if(myEngine->hasUncaughtException()) {
+        qCritical() << myEngine->uncaughtException().toString();
     }
 
     return a.exec();
 }
 
 
-int mainold(int argc, char *argv[])
+int main2(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
     qRegisterMetaType<Message>("Message");
 
 
     FileConsumer consumer;
-    consumer.setPath("c:/temp/filewmq/swifts");
-    consumer.setArchPath("c:/temp/filewmq/arch");
+    consumer.setBatchSize(10000);
+    consumer.setPath("/tmp/filewmq/swifts");
+    consumer.setArchPath("/tmp/filewmq/arch");
+//    consumer.setPath("c:/temp/filewmq/swifts");
+//    consumer.setArchPath("c:/temp/filewmq/arch");
+    consumer.init();
 
     QTimer timer;
     QObject::connect(&timer, SIGNAL(timeout()), &consumer, SLOT(consume()));
-    timer.start(5000);
-
-
+    timer.start(500);
 
     WMQConnectionFactory connectionFactory;
+    connectionFactory.setQueueManagerName("TEST.QM");
+    connectionFactory.setConnectionName("192.168.56.3(1414)");
+    connectionFactory.setChannelName("CPROGRAM.CHANNEL");
 
     ConnectionPool pool;
     pool.setConnectionFactory(&connectionFactory);
@@ -82,12 +109,17 @@ int mainold(int argc, char *argv[])
     qDebug() << "Create producer 1";
     WMQProducer producer((iConnectionFactory *)&pool);
     producer.setQueueName("Q");
-    producer.setMaxWorkers(16);
+    producer.setMaxWorkers(1);
     producer.init();
 
     QObject::connect(&consumer, SIGNAL(message(Message)), &producer, SLOT(produce(Message)));
-    QObject::connect(&producer, SIGNAL(produced(Message)), &consumer, SLOT(commit(Message)));
-    QObject::connect(&producer, SIGNAL(rollback(Message)), &consumer, SLOT(rollback(Message)));
+
+        QObject::connect(producer.getCommiter(), SIGNAL(commited(Message)), consumer.getCommiter(), SLOT(commit(Message)));
+        QObject::connect(producer.getCommiter(), SIGNAL(rollbacked(Message)), consumer.getCommiter(), SLOT(rollback(Message)));
+
+
+//    QObject::connect(&producer, SIGNAL(produced(Message)), &consumer, SLOT(commit(Message)));
+//    QObject::connect(&producer, SIGNAL(rollback(Message)), &consumer, SLOT(rollback(Message)));
 
 
     return a.exec();

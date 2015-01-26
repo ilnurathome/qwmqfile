@@ -9,6 +9,7 @@ class Message
 protected:
     QHash <QString, QString> headers;
     QObject *msgbody;
+    QString emiter;
 public:
     explicit Message(Message *msg = 0);
     ~Message();
@@ -20,6 +21,8 @@ public:
     QHash<QString, QString>& getHeaders();
 
     QString getHeader(QString& key);
+    QString getEmiter() const;
+    void setEmiter(const QString &value);
 };
 
 #endif // MESSAGE_H
