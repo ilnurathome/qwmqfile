@@ -55,11 +55,13 @@ void WMQConsumer::run()
 
             int hsize = parseMQRFHeader2(pszDataPointer, newmsg->getHeaders());
 
-            QByteArray msgData(pszDataPointer  + hsize, dataLength - hsize);
-            qDebug() << msgData;
+            QByteArray msgData;
+            msgData.append(pszDataPointer  + hsize, dataLength - hsize);
+//            qDebug() << msgData;
+//            QByteArray msgData = QByteArray::fromRawData(pszDataPointer  + hsize, dataLength - hsize);
             newmsg->setBody(msgData);
 
-            qDebug() << newmsg->getBodyAsByteArray() << newmsg->getBodyAsByteArray()->data();
+//            qDebug() << newmsg->getBodyAsByteArray() << newmsg->getBodyAsByteArray()->data();
 
 
             QHashIterator<QString, QString> headerIterator(newmsg->getHeaders());
@@ -69,6 +71,10 @@ void WMQConsumer::run()
                 QString headerValue = headerIterator.value();
                 qDebug() << "void WMQConsumer::run: headerName=" << headerName << "; headerValue=" << headerValue;
             }
+
+            msgCounter++;
+            newmsg->setHeader("consumerCounter", QString::number(msgCounter));
+            qDebug() << "consumerCounter: " << msgCounter;
 
             emit message(newmsg);
         }
@@ -92,12 +98,12 @@ iConnectionFactory *WMQConsumer::getConnectionFactory() const
 
 void WMQConsumer::commit(Message *msg)
 {
-
+    if (msg) delete msg;
 }
 
 void WMQConsumer::rollback(Message *msg)
 {
-
+    if (msg) delete msg;
 }
 
 void WMQConsumer::setConnectionFactory(iConnectionFactory *value)
@@ -105,7 +111,7 @@ void WMQConsumer::setConnectionFactory(iConnectionFactory *value)
     connectionFactory = value;
 }
 WMQConsumer::WMQConsumer(QObject *parent) :
-    QObject(parent), connection(NULL)
+    QObject(parent), connection(NULL), msgCounter(0), connectionFactory(NULL)
 {
 }
 

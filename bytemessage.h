@@ -9,6 +9,7 @@ class ByteMessage : public Message
     QByteArray b;
 public:
     ByteMessage();
+    ~ByteMessage();
 
     void setBody(QByteArray &value);
     void setBody(QByteArray *value);

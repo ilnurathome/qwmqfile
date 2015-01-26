@@ -19,6 +19,8 @@ class WMQConsumer : public QObject, public QRunnable
     ImqQueue queue;
     iConnection* connection;
 
+    long msgCounter;
+
 public:
     explicit WMQConsumer(QObject *parent = 0);
 

@@ -8,6 +8,7 @@
 #include "wmqproducer.h"
 #include "connectionpool.h"
 #include "wmqconsumer.h"
+#include "testmsgprocessor.h"
 
 QScriptValue qTimerConstructor(QScriptContext *context, QScriptEngine *engine)
 {
@@ -18,10 +19,10 @@ QScriptValue qTimerConstructor(QScriptContext *context, QScriptEngine *engine)
 
 bool qTimerInitScriptEngine(QScriptEngine &engine)
 {
-        QScriptValue ctor = engine.newFunction(qTimerConstructor);
-        QScriptValue metaObject = engine.newQMetaObject(&QTimer::staticMetaObject, ctor);
-        engine.globalObject().setProperty("QTimer", metaObject);
-        return true;
+    QScriptValue ctor = engine.newFunction(qTimerConstructor);
+    QScriptValue metaObject = engine.newQMetaObject(&QTimer::staticMetaObject, ctor);
+    engine.globalObject().setProperty("QTimer", metaObject);
+    return true;
 }
 
 QScriptValue qThreadConstructor(QScriptContext *context, QScriptEngine *engine)
@@ -33,10 +34,10 @@ QScriptValue qThreadConstructor(QScriptContext *context, QScriptEngine *engine)
 
 bool qThreadInitScriptEngine(QScriptEngine &engine)
 {
-        QScriptValue ctor = engine.newFunction(qThreadConstructor);
-        QScriptValue metaObject = engine.newQMetaObject(&QThread::staticMetaObject, ctor);
-        engine.globalObject().setProperty("QThread", metaObject);
-        return true;
+    QScriptValue ctor = engine.newFunction(qThreadConstructor);
+    QScriptValue metaObject = engine.newQMetaObject(&QThread::staticMetaObject, ctor);
+    engine.globalObject().setProperty("QThread", metaObject);
+    return true;
 }
 
 QScriptEngine* myEngine;
@@ -45,7 +46,7 @@ QScriptEngine* myEngine;
 int testQS(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-//    qRegisterMetaType<Message>("Message");
+    //    qRegisterMetaType<Message>("Message");
 
     QString scriptName = "context.qs";
 
@@ -88,8 +89,8 @@ int test_file2wmq(int argc, char *argv[])
     consumer.setBatchSize(10000);
     consumer.setPath("/tmp/filewmq/swifts");
     consumer.setArchPath("/tmp/filewmq/arch");
-//    consumer.setPath("c:/temp/filewmq/swifts");
-//    consumer.setArchPath("c:/temp/filewmq/arch");
+    //    consumer.setPath("c:/temp/filewmq/swifts");
+    //    consumer.setArchPath("c:/temp/filewmq/arch");
     consumer.init();
 
     QTimer timer;
@@ -113,12 +114,12 @@ int test_file2wmq(int argc, char *argv[])
 
     QObject::connect(&consumer, SIGNAL(message(Message)), &producer, SLOT(produce(Message)));
 
-        QObject::connect(producer.getCommiter(), SIGNAL(commited(Message)), consumer.getCommiter(), SLOT(commit(Message)));
-        QObject::connect(producer.getCommiter(), SIGNAL(rollbacked(Message)), consumer.getCommiter(), SLOT(rollback(Message)));
+    QObject::connect(producer.getCommiter(), SIGNAL(commited(Message)), consumer.getCommiter(), SLOT(commit(Message)));
+    QObject::connect(producer.getCommiter(), SIGNAL(rollbacked(Message)), consumer.getCommiter(), SLOT(rollback(Message)));
 
 
-//    QObject::connect(&producer, SIGNAL(produced(Message)), &consumer, SLOT(commit(Message)));
-//    QObject::connect(&producer, SIGNAL(rollback(Message)), &consumer, SLOT(rollback(Message)));
+    //    QObject::connect(&producer, SIGNAL(produced(Message)), &consumer, SLOT(commit(Message)));
+    //    QObject::connect(&producer, SIGNAL(rollback(Message)), &consumer, SLOT(rollback(Message)));
 
 
     return a.exec();
@@ -130,7 +131,7 @@ int test_wmq2wmq(int argc, char *argv[])
 
     WMQConnectionFactory connectionFactory;
     connectionFactory.setQueueManagerName("TEST.QM");
-//    connectionFactory.setConnectionName("devmod01v(1414)");
+    //    connectionFactory.setConnectionName("devmod01v(1414)");
     connectionFactory.setConnectionName("192.168.56.3(1414)");
     connectionFactory.setChannelName("JAVA.CHANNEL");
 
@@ -144,20 +145,30 @@ int test_wmq2wmq(int argc, char *argv[])
     consumer.setConnectionFactory((iConnectionFactory *)&pool);
     consumer.init();
 
-//    QTimer timer;
-//    QObject::connect(&timer, SIGNAL(timeout()), &consumer, SLOT(consume()));
-//    timer.start(500);
+    //    QTimer timer;
+    //    QObject::connect(&timer, SIGNAL(timeout()), &consumer, SLOT(consume()));
+    //    timer.start(500);
 
     qDebug() << "Create producer 1";
     WMQProducer producer((iConnectionFactory *)&pool);
-    producer.setQueueName("Q1");
+    producer.setQueueName("Q2");
     producer.setMaxWorkers(1);
     producer.init();
 
-    QObject::connect(&consumer, SIGNAL(message(Message*)), &producer, SLOT(produce(Message*)));
+    WMQProducer producer2((iConnectionFactory *)&pool);
+    producer2.setQueueName("Q");
+    producer2.setMaxWorkers(1);
+    producer2.init();
 
-//        QObject::connect(producer.getCommiter(), SIGNAL(commited(Message)), consumer.getCommiter(), SLOT(commit(Message)));
-//        QObject::connect(producer.getCommiter(), SIGNAL(rollbacked(Message)), consumer.getCommiter(), SLOT(rollback(Message)));
+    TestMsgProcessor processor;
+
+    QObject::connect(&consumer, SIGNAL(message(Message*)), &processor, SLOT(process(Message*)));
+    QObject::connect(&processor, SIGNAL(proceed(Message*)), &producer, SLOT(produce(Message*)));
+
+    QObject::connect(&consumer, SIGNAL(message(Message*)), &producer2, SLOT(produce(Message*)));
+
+    QObject::connect(producer.getCommiter(), SIGNAL(commited(Message*)), &consumer, SLOT(commit(Message*)));
+    QObject::connect(producer.getCommiter(), SIGNAL(rollbacked(Message*)), &consumer, SLOT(rollback(Message*)));
 
     QThreadPool::globalInstance()->start(&consumer);
 
