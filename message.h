@@ -17,6 +17,8 @@ public:
     QObject* getBody();
     void setBody(QObject* value);
 
+    virtual QByteArray *getBodyAsByteArray()=0;
+
     int setHeader(QString name, QString value);
     QHash<QString, QString>& getHeaders();
 

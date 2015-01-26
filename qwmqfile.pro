@@ -24,10 +24,9 @@ SOURCES += main.cpp \
     filemessage.cpp \
     connectionpool.cpp \
     wmqconnection.cpp \
-    qqueueproducer.cpp \
-    qqueueconsumer.cpp \
-    qqueueconsumerproducer.cpp \
-    errormessage.cpp
+    errormessage.cpp \
+    wmqconsumer.cpp \
+    bytemessage.cpp
 
 HEADERS += \
     fileconsumer.h \
@@ -38,15 +37,15 @@ HEADERS += \
     connectionpool.h \
     iconnection.h \
     wmqconnection.h \
-    qqueueproducer.h \
-    qqueueconsumer.h \
-    qqueueconsumerproducer.h \
     errormessage.h \
-    common.h
+    common.h \
+    wmqconsumer.h \
+    bytemessage.h
 
 
 win32:INCLUDEPATH += "C:/Program Files/IBM/WebSphere MQ/tools/cplus/include" \
-"c:/Program Files/IBM/WebSphere MQ/tools/c/include"
+"c:/Program Files/IBM/WebSphere MQ/tools/c/include" \
+"c:/Programs/boost_1_54_0"
 
 win32:LIBS += "c:/Program Files/IBM/WebSphere MQ/tools/Lib/imqb23vn.Lib" \
 "c:/Program Files/IBM/WebSphere MQ/tools/Lib/imqc23vn.Lib"

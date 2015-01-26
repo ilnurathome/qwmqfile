@@ -29,7 +29,7 @@ void WMQProducer::setQueueName(const QString &value)
     queueName = value;
 }
 
-void WMQProducer::produce(Message msg)
+void WMQProducer::produce(Message *msg)
 {
     while (true) {
         if (workers.at(nextRoundRobbin())->doSend(msg))
@@ -37,13 +37,13 @@ void WMQProducer::produce(Message msg)
     }
 }
 
-void WMQProducer::workerProduced(Message msg)
+void WMQProducer::workerProduced(Message *msg)
 {
-    msg.setHeader("emiter", "WMQProducer");
+    msg->setHeader("emiter", "WMQProducer");
     emit produced(msg);
 }
 
-void WMQProducer::getError(Message message, QString err)
+void WMQProducer::getError(Message *message, QString err)
 {
     qCritical() << "WMQProducer got error while proccesing message: " << &message << ", err: " << err;
     emit rollback(message);
@@ -65,8 +65,8 @@ void WMQProducer::init()
         threads.append(thread);
         workers.append(worker);
 
-        QObject::connect(worker, SIGNAL(sended(Message)), commiter, SLOT(commit(Message)), Qt::QueuedConnection);
-        QObject::connect(worker, SIGNAL(error(Message,QString)), this, SLOT(getError(Message,QString)), Qt::QueuedConnection);
+        QObject::connect(worker, SIGNAL(sended(Message*)), commiter, SLOT(commit(Message*)), Qt::QueuedConnection);
+        QObject::connect(worker, SIGNAL(error(Message*,QString)), this, SLOT(getError(Message*,QString)), Qt::QueuedConnection);
 
         thread->start();
     }
@@ -130,7 +130,7 @@ WMQProducer::~WMQProducer()
     workers.clear();
 }
 
-QByteArray* buildMQRFHeader2(Message msg)
+QByteArray* buildMQRFHeader2(Message *msg)
 {
     QByteArray* result = new QByteArray();
     if (!result)
@@ -145,7 +145,7 @@ QByteArray* buildMQRFHeader2(Message msg)
     QString mcdValueString;
     QString usrValueString;
 
-    QHashIterator<QString, QString> headerIterator(msg.getHeaders());
+    QHashIterator<QString, QString> headerIterator(msg->getHeaders());
     while (headerIterator.hasNext()) {
         headerIterator.next();
         QString headerName = headerIterator.key();
@@ -267,7 +267,7 @@ void WMQProducerThread::setQueueName(const QString &value)
 
 WMQProducerThread::WMQProducerThread(iConnectionFactory *_connectionFactory) : inuse(false), connectionFactory(_connectionFactory), connection(NULL)
 {
-    QObject::connect(this, SIGNAL(got(Message)), this, SLOT(send(Message)), Qt::QueuedConnection);
+    QObject::connect(this, SIGNAL(got(Message*)), this, SLOT(send(Message*)), Qt::QueuedConnection);
     qDebug() << "WMQProducerThread";
 }
 
@@ -285,7 +285,7 @@ void WMQProducerThread::setWorkerNumber(int n)
     workerNumber = n;
 }
 
-bool WMQProducerThread::doSend(Message msg)
+bool WMQProducerThread::doSend(Message *msg)
 {
     QReadLocker locker(&lock);
     if (inuse) {
@@ -295,19 +295,19 @@ bool WMQProducerThread::doSend(Message msg)
 
     inuse = true;
 
-    msg.setHeader("emiter", "WMQProducerThread");
+    msg->setHeader("emiter", "WMQProducerThread");
     emit got(msg);
 
     return true;
 }
 
-void WMQProducerThread::send(Message message)
+void WMQProducerThread::send(Message *message)
 {
     if (!connection)
         connection = connectionFactory->getConnection();
 
     if (!connection) {
-        message.setHeader("emiter", "WMQProducerThread");
+        message->setHeader("emiter", "WMQProducerThread");
         emit error(message, "can't get connection");
         return;
     }
@@ -331,7 +331,7 @@ void WMQProducerThread::send(Message message)
             //        errmsg.setErrorCode(0);
             //        errmsg.setErrorString("ImqQueue::open error");
             //        emit error(message, errmsg);
-            message.setHeader("emiter", "WMQProducerThread");
+            message->setHeader("emiter", "WMQProducerThread");
             emit error(message, QString("ImqQueue::open error with reason code %1").arg((int)queue.reasonCode()));
             return;
         }
@@ -353,15 +353,8 @@ void WMQProducerThread::send(Message message)
         //        qDebug() << "bodyArray size: " << bodyArray->size();
 
         // FIXME create message type converter
-        QFile* file =(QFile*)message.getBody();
-        if (file) {
-            //            qDebug() << "File name: " << file->fileName();
-
-            if(file->open(QIODevice::ReadOnly)) {
-                bodyArray->append(file->readAll());
-                file->close();
-            }
-        }
+        QByteArray *tb = message->getBodyAsByteArray();
+        bodyArray->append(*tb);
 
         msg.setMessageType(MQMT_DATAGRAM);
         msg.setPersistence(MQPER_PERSISTENT);
@@ -414,14 +407,14 @@ bool WMQProducerCommiter::initScriptEngine(QScriptEngine &engine)
     return true;
 }
 
-void WMQProducerCommiter::commit(Message msg)
+void WMQProducerCommiter::commit(Message *msg)
 {
 //    qDebug() << "WMQProducerCommiter::commit : " << msg.getHeaders().value("FileName");
 //    msg.setHeader("emiter", "WMQProducerCommiter");
     emit commited(msg);
 }
 
-void WMQProducerCommiter::rollback(Message msg)
+void WMQProducerCommiter::rollback(Message *msg)
 {
 //    qDebug() << "WMQProducerCommiter::rollback";
 //    msg.setHeader("emiter", "WMQProducerCommiter");

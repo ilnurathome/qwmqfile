@@ -136,8 +136,8 @@ void FileConsumer::init()
     commiter->setArchPath(archPath);
     commiter->moveToThread(commiterThread);
 
-    QObject::connect(commiter, SIGNAL(commited(Message)), this, SLOT(commit(Message)), Qt::QueuedConnection);
-    QObject::connect(commiter, SIGNAL(rollbacked(Message)), this, SLOT(rollback(Message)), Qt::QueuedConnection);
+    QObject::connect(commiter, SIGNAL(commited(Message*)), this, SLOT(commit(Message*)), Qt::QueuedConnection);
+    QObject::connect(commiter, SIGNAL(rollbacked(Message*)), this, SLOT(rollback(Message*)), Qt::QueuedConnection);
 
     commiterThread->start();
 }
@@ -176,12 +176,12 @@ void FileConsumer::consume(const QString &path)
 
 //                qDebug() << "Consuming: " << filename << "\t" << filepath;
 
-        FileMessage msg;
-        msg.setHeader("FileName", filename);
-        msg.setHeader("FilePath", filepath);
+        FileMessage *msg = new FileMessage();
+        msg->setHeader("FileName", filename);
+        msg->setHeader("FilePath", filepath);
 
 
-        msg.setBody(new QFile(filepath));
+        msg->setBody(new QFile(filepath));
         procceded++;
         emit message(msg);
     }
@@ -192,7 +192,7 @@ void FileConsumer::consume(const QString &path)
     qDebug() << "Consumed : " << procceded;
 }
 
-void FileConsumer::commit(Message msg)
+void FileConsumer::commit(Message *msg)
 {
     commited++;
 
@@ -205,18 +205,18 @@ void FileConsumer::commit(Message msg)
     }
 }
 
-void FileConsumer::commitAndMove(Message msg)
+void FileConsumer::commitAndMove(Message *msg)
 {
-    if (msg.getBody() != NULL) {
-        QFile* file = qobject_cast<QFile*> (msg.getBody());
+    if (msg->getBody() != NULL) {
+        QFile* file = qobject_cast<QFile*> (msg->getBody());
 
-        if (file && msg.getHeaders().contains("FileName")) {
+        if (file && msg->getHeaders().contains("FileName")) {
             //            QString newDirPath = archPath + "/" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmm");
             QString newDirPath = archPathFunc.empty() ?
                         archPath + "/" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmm") :
                         archPath + "/" + archPathFunc();
             //            QString newDirPath = archPath + "/" + archPathFunc();
-            QString filename = msg.getHeaders().value("FileName");
+            QString filename = msg->getHeaders().value("FileName");
 
             QDir dir(newDirPath);
             if (!dir.exists()) {
@@ -245,10 +245,10 @@ void FileConsumer::commitAndMove(Message msg)
     }
 }
 
-void FileConsumer::rollback(Message msg)
+void FileConsumer::rollback(Message *msg)
 {
     commited++;
-    qDebug() << "Rollback msg: " << msg.getHeaders().value("FileName");
+    qDebug() << "Rollback msg: " << msg->getHeaders().value("FileName");
 
     if (!processing) {
         //        qDebug() << "Wait for commit all : " << procceded << " : " << commited;
@@ -259,10 +259,10 @@ void FileConsumer::rollback(Message msg)
     }
 }
 
-void FileConsumer::rollbackAndMove(Message msg)
+void FileConsumer::rollbackAndMove(Message *msg)
 {
     commited++;
-    qDebug() << "Rollback msg: " << msg.getHeaders().value("FileName");
+    qDebug() << "Rollback msg: " << msg->getHeaders().value("FileName");
 
     if (!processing) {
         //        qDebug() << "Wait for commit all : " << procceded << " : " << commited;
@@ -302,19 +302,19 @@ bool FileConsumerCommiter::initScriptEngine(QScriptEngine &engine)
     return true;
 }
 
-void FileConsumerCommiter::commit(Message msg)
+void FileConsumerCommiter::commit(Message *msg)
 {
 //    qDebug() << "FileConsumerCommiter::commit : " << msg.getHeaders().value("FileName") << " ; emiter: " << msg.getHeaders().value("emiter");
-    if (msg.getBody() != NULL) {
-        QFile* file = qobject_cast<QFile*> (msg.getBody());
+    if (msg->getBody() != NULL) {
+        QFile* file = qobject_cast<QFile*> (msg->getBody());
 
-        if (file && msg.getHeaders().contains("FileName")) {
+        if (file && msg->getHeaders().contains("FileName")) {
             //            QString newDirPath = archPath + "/" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmm");
             QString newDirPath = archPathFunc.empty() ?
                         archPath + "/" + QDateTime::currentDateTime().toString("yyyyMMdd_hhmm") :
                         archPath + "/" + archPathFunc();
             //            QString newDirPath = archPath + "/" + archPathFunc();
-            QString filename = msg.getHeaders().value("FileName");
+            QString filename = msg->getHeaders().value("FileName");
 
 //            qDebug() << "Commiting: " << filename;
 
@@ -338,7 +338,7 @@ void FileConsumerCommiter::commit(Message msg)
     emit commited(msg);
 }
 
-void FileConsumerCommiter::rollback(Message msg)
+void FileConsumerCommiter::rollback(Message *msg)
 {
     emit rollbacked(msg);
 }

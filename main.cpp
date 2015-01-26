@@ -7,7 +7,7 @@
 #include "fileconsumer.h"
 #include "wmqproducer.h"
 #include "connectionpool.h"
-#include "qqueueconsumerproducer.h"
+#include "wmqconsumer.h"
 
 QScriptValue qTimerConstructor(QScriptContext *context, QScriptEngine *engine)
 {
@@ -41,10 +41,11 @@ bool qThreadInitScriptEngine(QScriptEngine &engine)
 
 QScriptEngine* myEngine;
 
-int main(int argc, char *argv[])
+
+int testQS(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    qRegisterMetaType<Message>("Message");
+//    qRegisterMetaType<Message>("Message");
 
     QString scriptName = "context.qs";
 
@@ -79,11 +80,9 @@ int main(int argc, char *argv[])
 }
 
 
-int main2(int argc, char *argv[])
+int test_file2wmq(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    qRegisterMetaType<Message>("Message");
-
 
     FileConsumer consumer;
     consumer.setBatchSize(10000);
@@ -125,62 +124,46 @@ int main2(int argc, char *argv[])
     return a.exec();
 }
 
-/*
+int test_wmq2wmq(int argc, char *argv[])
+{
+    QCoreApplication a(argc, argv);
 
-    //    QFileSystemWatcher qFileWatcher;
-    //    qFileWatcher.addPath("c:/temp/filewmq/arc");
-    //    QObject::connect(&qFileWatcher, SIGNAL(directoryChanged(QString)), &consumer, SLOT(consume(QString)));
+    WMQConnectionFactory connectionFactory;
+    connectionFactory.setQueueManagerName("TEST.QM");
+    connectionFactory.setConnectionName("devmod01v(1414)");
+    connectionFactory.setChannelName("JAVA.CHANNEL");
 
-    //    QQueueConsumerProducer reqQProd(&req);
-    //    QObject::connect(&consumer, SIGNAL(message(Message)), &reqQProd, SLOT(produce(Message)));
+    ConnectionPool pool;
+    pool.setConnectionFactory(&connectionFactory);
+    pool.setMaxConnections(24);
 
-//    QQueue<Message> req;
-//    QQueue<Message> resp;
-    //    QThread thread1;
-    //    QThread thread2;
 
-    //    QQueueConsumerProducer reqQCons1(&req);
-    //    QQueueConsumerProducer reqQCons2(&req);
-    //    reqQCons1.moveToThread(&thread1);
-    //    reqQCons2.moveToThread(&thread2);
-    //    thread1.start();
-    //    thread2.start();
+    WMQConsumer consumer;
+    consumer.setQueueName("Q1");
+    consumer.setConnectionFactory((iConnectionFactory *)&pool);
+    consumer.init();
 
-    //    QTimer timerReqQCons1;
-    //    QTimer timerReqQCons2;
+//    QTimer timer;
+//    QObject::connect(&timer, SIGNAL(timeout()), &consumer, SLOT(consume()));
+//    timer.start(500);
 
-    //    QObject::connect(&timerReqQCons1, SIGNAL(timeout()), &reqQCons1, SLOT(consume()));
-    //    QObject::connect(&timerReqQCons2, SIGNAL(timeout()), &reqQCons2, SLOT(consume()));
-    //    timerReqQCons1.start(1000);
-    //    timerReqQCons2.start(1000);
+    qDebug() << "Create producer 1";
+    WMQProducer producer((iConnectionFactory *)&pool);
+    producer.setQueueName("Q");
+    producer.setMaxWorkers(1);
+    producer.init();
 
-    //    producer.moveToThread(&thread1);
+    QObject::connect(&consumer, SIGNAL(message(Message*)), &producer, SLOT(produce(Message*)));
 
-    //    qDebug() << "Create producer 2";
-    //    WMQProducer producer2((iConnectionFactory *)&pool);
-    //    producer2.setQueueName("Q2");
-    //    producer2.moveToThread(&thread2);
+//        QObject::connect(producer.getCommiter(), SIGNAL(commited(Message)), consumer.getCommiter(), SLOT(commit(Message)));
+//        QObject::connect(producer.getCommiter(), SIGNAL(rollbacked(Message)), consumer.getCommiter(), SLOT(rollback(Message)));
 
-    //    QObject::connect(&reqQCons1, SIGNAL(message(Message)), &producer, SLOT(produce(Message)));
-    //    QObject::connect(&producer, SIGNAL(produced(Message)), &reqQCons1, SLOT(commit(Message)));
+    QThreadPool::globalInstance()->start(&consumer);
 
-    //    QObject::connect(&reqQCons2, SIGNAL(message(Message)), &producer2, SLOT(produce(Message)));
-    //    QObject::connect(&producer, SIGNAL(produced(Message)), &reqQCons2, SLOT(commit(Message)));
+    return a.exec();
+}
 
-    //    qDebug() << "Create message";
-    //    Message* msg = new Message();
-
-    //    msg->setHeader("mcd.Msd", "jms_text");
-    //    msg->setHeader("FileName", "text.txt");
-
-    //    QString hello = (QString)"Hello world";
-    //    qDebug() << "Created hello: " << hello;
-
-    //    qDebug() << "Set message body";
-    //    msg->setBody((QObject *)&hello);
-
-    //    qDebug() << "Do send";
-    //    producer.doSend(msg);
-
-    //    if (msg) delete msg;
- */
+int main(int argc, char *argv[])
+{
+    return test_wmq2wmq(argc, argv);
+}

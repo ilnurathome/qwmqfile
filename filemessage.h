@@ -11,7 +11,7 @@ public:
     explicit FileMessage(Message *parent = 0);
 
     void setBody(QFile* file);
-    virtual QObject* getBody();
+    virtual QByteArray* getBodyAsByteArray();
     QFile* getFile();
 };
 

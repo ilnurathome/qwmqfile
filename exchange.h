@@ -9,16 +9,16 @@ class Exchange : public QObject
 {
     Q_OBJECT
 
-    Message in;
-    Message out;
+    Message *in;
+    Message *out;
 public:
     explicit Exchange(QObject *parent = 0);
 
-    Message getIn() const;
-    void setIn(const Message &value);
+    Message *getIn() const;
+    void setIn(Message *value);
 
-    Message getOut() const;
-    void setOut(const Message &value);
+    Message *getOut() const;
+    void setOut(Message *value);
 
 signals:
 
