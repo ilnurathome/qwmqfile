@@ -23,7 +23,7 @@ public slots:
 
 };
 
-class WMQProducerThread : public QObject
+class WMQProducer : public QObject
 {
     Q_OBJECT
 
@@ -39,27 +39,34 @@ class WMQProducerThread : public QObject
     QReadWriteLock lock;
 
 public:
-    WMQProducerThread(iConnectionFactory* _connectionFactory);
-    ~WMQProducerThread();
+    WMQProducer();
+    WMQProducer(iConnectionFactory* _connectionFactory);
+    ~WMQProducer();
 
+    static bool initScriptEngine(QScriptEngine &engine);
 
     bool doSend(Message *msg);
 
     QString getQueueName() const;
 
+    iConnectionFactory *getConnectionFactory() const;
+
 signals:
-    void sended(Message *msg);
+    void produced(Message *msg);
     void got(Message *msg);
     void error(Message *message, QString err);
+    void rollback(Message *msg);
 
 public slots:
-    void send(Message *message);
+    void produce(Message *message);
     void setQueueName(const QString &value);
     void setWorkerNumber(int n);
+
+    void setConnectionFactory(iConnectionFactory *value);
 };
 
 
-class WMQProducer : public QObject
+class WMQProducerThreaded : public QObject
 {
     Q_OBJECT
 
@@ -67,7 +74,7 @@ class WMQProducer : public QObject
     QString queueName;
 
     QList<QThread*> threads;
-    QList<WMQProducerThread*> workers;
+    QList<WMQProducer*> workers;
 
     QThread *commiterThread;
     WMQProducerCommiter *commiter;
@@ -77,9 +84,9 @@ class WMQProducer : public QObject
     int workerCounter;
 
 public:
-    WMQProducer();
-    WMQProducer(iConnectionFactory* connectionFactory);
-    ~WMQProducer();
+    WMQProducerThreaded();
+    WMQProducerThreaded(iConnectionFactory* connectionFactory);
+    ~WMQProducerThreaded();
 
     static bool initScriptEngine(QScriptEngine &engine);
 

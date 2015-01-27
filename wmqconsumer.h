@@ -21,8 +21,11 @@ class WMQConsumer : public QObject, public QRunnable
 
     long msgCounter;
 
+    bool isquit;
+
 public:
     explicit WMQConsumer(QObject *parent = 0);
+    virtual ~WMQConsumer();
 
     QString getQueueName() const;
 
@@ -41,6 +44,7 @@ public slots:
     void setConnectionFactory(iConnectionFactory *value);
 
     void init();
+    void quit();
 };
 
 #endif // WMQCONSUMER_H

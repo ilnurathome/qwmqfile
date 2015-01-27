@@ -4,32 +4,37 @@
 #include <cmqpsc.h>
 #include "wmqproducer.h"
 
+QScriptValue wmqProducerThreadedConstructor(QScriptContext *context, QScriptEngine *engine)
+{
+    QObject *object = new WMQProducerThreaded();
+    return engine->newQObject(object, QScriptEngine::ScriptOwnership);
+}
+
 QScriptValue wmqProducerConstructor(QScriptContext *context, QScriptEngine *engine)
 {
     QObject *object = new WMQProducer();
     return engine->newQObject(object, QScriptEngine::ScriptOwnership);
 }
 
-
-bool WMQProducer::initScriptEngine(QScriptEngine &engine)
+bool WMQProducerThreaded::initScriptEngine(QScriptEngine &engine)
 {
-    QScriptValue ctor = engine.newFunction(wmqProducerConstructor);
-    QScriptValue metaObject = engine.newQMetaObject(&WMQProducer::staticMetaObject, ctor);
-    engine.globalObject().setProperty("WMQProducer", metaObject);
+    QScriptValue ctor = engine.newFunction(wmqProducerThreadedConstructor);
+    QScriptValue metaObject = engine.newQMetaObject(&WMQProducerThreaded::staticMetaObject, ctor);
+    engine.globalObject().setProperty("WMQProducerThreaded", metaObject);
     return true;
 }
 
-QString WMQProducer::getQueueName() const
+QString WMQProducerThreaded::getQueueName() const
 {
     return queueName;
 }
 
-void WMQProducer::setQueueName(const QString &value)
+void WMQProducerThreaded::setQueueName(const QString &value)
 {
     queueName = value;
 }
 
-void WMQProducer::produce(Message *msg)
+void WMQProducerThreaded::produce(Message *msg)
 {
     while (true) {
         if (workers.at(nextRoundRobbin())->doSend(msg))
@@ -37,27 +42,27 @@ void WMQProducer::produce(Message *msg)
     }
 }
 
-void WMQProducer::workerProduced(Message *msg)
+void WMQProducerThreaded::workerProduced(Message *msg)
 {
     msg->setHeader("emiter", "WMQProducer");
     emit produced(msg);
 }
 
-void WMQProducer::getError(Message *message, QString err)
+void WMQProducerThreaded::getError(Message *message, QString err)
 {
     qCritical() << "WMQProducer got error while proccesing message: " << &message << ", err: " << err;
     emit rollback(message);
 }
 
 
-void WMQProducer::init()
+void WMQProducerThreaded::init()
 {
     commiterThread = new QThread();
     commiter->moveToThread(commiterThread);
 
     for (int i=0; i<maxWorkers; i++) {
         QThread* thread = new QThread();
-        WMQProducerThread* worker = new WMQProducerThread(connectionFactory);
+        WMQProducer* worker = new WMQProducer(connectionFactory);
         worker->setWorkerNumber(i);
         worker->setQueueName(queueName);
         worker->moveToThread(thread);
@@ -65,8 +70,8 @@ void WMQProducer::init()
         threads.append(thread);
         workers.append(worker);
 
-        QObject::connect(worker, SIGNAL(sended(Message*)), commiter, SLOT(commit(Message*)), Qt::QueuedConnection);
-        QObject::connect(worker, SIGNAL(error(Message*,QString)), this, SLOT(getError(Message*,QString)), Qt::QueuedConnection);
+        QObject::connect(worker, SIGNAL(produced(Message*)), commiter, SLOT(commit(Message*)), Qt::QueuedConnection);
+        QObject::connect(worker, SIGNAL(rollback(Message*)), commiter, SLOT(rollback(Message*)), Qt::QueuedConnection);
 
         thread->start();
     }
@@ -74,44 +79,44 @@ void WMQProducer::init()
     commiterThread->start();
 }
 
-QObject *WMQProducer::getCommiter()
+QObject *WMQProducerThreaded::getCommiter()
 {
     return commiter;
 }
 
 
-int WMQProducer::getMaxWorkers() const
+int WMQProducerThreaded::getMaxWorkers() const
 {
     return maxWorkers;
 }
 
-void WMQProducer::setMaxWorkers(int value)
+void WMQProducerThreaded::setMaxWorkers(int value)
 {
     maxWorkers = value;
 }
 
-iConnectionFactory *WMQProducer::getConnectionFactory() const
+iConnectionFactory *WMQProducerThreaded::getConnectionFactory() const
 {
     return connectionFactory;
 }
 
-void WMQProducer::setConnectionFactory(iConnectionFactory *value)
+void WMQProducerThreaded::setConnectionFactory(iConnectionFactory *value)
 {
     connectionFactory = value;
 }
-WMQProducer::WMQProducer(): workerCounter(0)
+WMQProducerThreaded::WMQProducerThreaded(): workerCounter(0)
 {
     commiter = new WMQProducerCommiter();
 }
 
-WMQProducer::WMQProducer(iConnectionFactory* connectionFactory): workerCounter(0)
+WMQProducerThreaded::WMQProducerThreaded(iConnectionFactory* connectionFactory): workerCounter(0)
 {
     this->connectionFactory = connectionFactory;
     maxWorkers = 4;
     commiter = new WMQProducerCommiter();
 }
 
-WMQProducer::~WMQProducer()
+WMQProducerThreaded::~WMQProducerThreaded()
 {
     QListIterator<QThread*> t(threads);
     while(t.hasNext()) {
@@ -121,9 +126,9 @@ WMQProducer::~WMQProducer()
     }
     threads.clear();
 
-    QListIterator<WMQProducerThread*> w(workers);
+    QListIterator<WMQProducer*> w(workers);
     while(w.hasNext()) {
-        WMQProducerThread* worker = w.next();
+        WMQProducer* worker = w.next();
         if (worker)
             delete worker;
     }
@@ -255,37 +260,62 @@ QByteArray* buildMQRFHeader2(Message *msg)
     return result;
 }
 
-QString WMQProducerThread::getQueueName() const
+QString WMQProducer::getQueueName() const
 {
     return queueName;
 }
 
-void WMQProducerThread::setQueueName(const QString &value)
+void WMQProducer::setQueueName(const QString &value)
 {
     queueName = value;
 }
 
-WMQProducerThread::WMQProducerThread(iConnectionFactory *_connectionFactory) : inuse(false), connectionFactory(_connectionFactory), connection(NULL)
+
+iConnectionFactory *WMQProducer::getConnectionFactory() const
 {
-    QObject::connect(this, SIGNAL(got(Message*)), this, SLOT(send(Message*)), Qt::QueuedConnection);
-    qDebug() << "WMQProducerThread";
+    return connectionFactory;
 }
 
-WMQProducerThread::~WMQProducerThread()
+void WMQProducer::setConnectionFactory(iConnectionFactory *value)
+{
+    connectionFactory = value;
+}
+
+WMQProducer::WMQProducer() : inuse(false), connectionFactory(NULL), connection(NULL)
+{
+    QObject::connect(this, SIGNAL(got(Message*)), this, SLOT(produce(Message*)), Qt::QueuedConnection);
+    qDebug() << __PRETTY_FUNCTION__;
+}
+
+WMQProducer::WMQProducer(iConnectionFactory *_connectionFactory) : inuse(false), connectionFactory(_connectionFactory), connection(NULL)
+{
+    QObject::connect(this, SIGNAL(got(Message*)), this, SLOT(produce(Message*)), Qt::QueuedConnection);
+    qDebug() << __PRETTY_FUNCTION__;
+}
+
+WMQProducer::~WMQProducer()
 {
     if(queue.openStatus())
         queue.close();
     if(connectionFactory)
         connectionFactory->releaseConnection(connection);
-    qDebug() << "~WMQProducerThread";
+    qDebug() << __PRETTY_FUNCTION__;
 }
 
-void WMQProducerThread::setWorkerNumber(int n)
+bool WMQProducer::initScriptEngine(QScriptEngine &engine)
+{
+    QScriptValue ctor = engine.newFunction(wmqProducerConstructor);
+    QScriptValue metaObject = engine.newQMetaObject(&WMQProducer::staticMetaObject, ctor);
+    engine.globalObject().setProperty("WMQProducer", metaObject);
+    return true;
+}
+
+void WMQProducer::setWorkerNumber(int n)
 {
     workerNumber = n;
 }
 
-bool WMQProducerThread::doSend(Message *msg)
+bool WMQProducer::doSend(Message *msg)
 {
     QReadLocker locker(&lock);
     if (inuse) {
@@ -301,7 +331,7 @@ bool WMQProducerThread::doSend(Message *msg)
     return true;
 }
 
-void WMQProducerThread::send(Message *message)
+void WMQProducer::produce(Message *message)
 {
     if (!connection)
         connection = connectionFactory->getConnection();
@@ -309,6 +339,7 @@ void WMQProducerThread::send(Message *message)
     if (!connection) {
         message->setHeader("emiter", "WMQProducerThread");
         emit error(message, "can't get connection");
+        emit rollback(message);
         return;
     }
 //    qDebug() << "WMQProducerThread::send: " << message.getHeaders().value("FileName") << ", workerNumber:" << workerNumber;
@@ -332,7 +363,8 @@ void WMQProducerThread::send(Message *message)
             //        errmsg.setErrorString("ImqQueue::open error");
             //        emit error(message, errmsg);
             message->setHeader("emiter", "WMQProducerThread");
-            emit error(message, QString("ImqQueue::open error with reason code %1").arg((int)queue.reasonCode()));
+//            emit error(message, QString("ImqQueue::open error with reason code %1").arg((int)queue.reasonCode()));
+            emit rollback(message);
             return;
         }
     }
@@ -352,9 +384,7 @@ void WMQProducerThread::send(Message *message)
 
         //        qDebug() << "bodyArray size: " << bodyArray->size();
 
-        // FIXME create message type converter
-        QByteArray *tb = message->getBodyAsByteArray();
-        bodyArray->append(*tb);
+        bodyArray->append(message->getBodyAsByteArray());
 
         msg.setMessageType(MQMT_DATAGRAM);
         msg.setPersistence(MQPER_PERSISTENT);
@@ -363,12 +393,15 @@ void WMQProducerThread::send(Message *message)
         //msg.useFullBuffer(bodyArray->constData(), bodyArray->size());
         msg.write(bodyArray->size(), bodyArray->constData());
 
+        ImqPutMessageOptions pmo;
+
         if(!queue.put(msg)) {
             //            ErrorMessage errmsg;
             //            errmsg.setErrorCode(0);
             //            errmsg.setErrorString("ImqQueue::put error");
             //            emit error(message, errmsg);
-            emit error(message, QString("ImqQueue::put error with reason code %1").arg((int)queue.reasonCode()));
+//            emit error(message, QString("ImqQueue::put error with reason code %1").arg((int)queue.reasonCode()));
+            emit rollback(message);
             return;
         }
 
@@ -384,12 +417,13 @@ void WMQProducerThread::send(Message *message)
         //        errmsg.setErrorString("bodyArray is NULL");
         //        emit error(message, errmsg);
         emit error(message, QString("bodyArray is NULL"));
+        emit rollback(message);
         return;
     }
 
     queue.close();
 
-    emit sended(message);
+    emit produced(message);
     inuse = false;
 }
 

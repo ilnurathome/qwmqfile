@@ -42,10 +42,10 @@ Message::Message(Message* msg)
 {
     if(msg)
         msgbody = msg->getBody();
-    //    qDebug() << "Message constructed";
+    //    qDebug() << __PRETTY_FUNCTION__;
 }
 
 Message::~Message()
 {
-//    qDebug() << "Message desctructed";
+//    qDebug() << __PRETTY_FUNCTION__;
 }

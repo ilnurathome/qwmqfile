@@ -2,28 +2,34 @@
 #include "filemessage.h"
 
 FileMessage::FileMessage(Message *parent) :
-    Message(parent)
+    Message(parent), f(NULL)
 {
+}
+
+FileMessage::~FileMessage()
+{
+    qDebug() << __PRETTY_FUNCTION__<< ":delete FileMessage: " << this;
+    if(f) {
+        if(f->isOpen()) f->close();
+        delete f;
+    }
 }
 
 void FileMessage::setBody(QFile* value)
 {
     f = value;
-    msgbody = value;
 }
 
-QByteArray* FileMessage::getBodyAsByteArray()
+QByteArray &FileMessage::getBodyAsByteArray()
 {
-    qDebug() << "FileMessage::getBody";
-    QByteArray* bodyArray = new QByteArray();
-
-    if (f) {
+//    qDebug() << __PRETTY_FUNCTION__;
+    if (f && ba.size() == 0) {
         if(f->open(QIODevice::ReadOnly)) {
-            bodyArray->append(f->readAll());
+            ba.append(f->readAll());
             f->close();
         }
     }
-    return bodyArray;
+    return ba;
 }
 
 QFile *FileMessage::getFile()

@@ -13,7 +13,7 @@ public:
 
     void setBody(QByteArray &value);
     void setBody(QByteArray *value);
-   virtual QByteArray *getBodyAsByteArray();
+   virtual QByteArray &getBodyAsByteArray();
 };
 
 #endif // BYTEMESSAGE_H

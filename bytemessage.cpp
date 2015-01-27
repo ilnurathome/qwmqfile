@@ -19,7 +19,7 @@ void ByteMessage::setBody(QByteArray *value)
     b = *value;
 }
 
-QByteArray *ByteMessage::getBodyAsByteArray()
+QByteArray &ByteMessage::getBodyAsByteArray()
 {
-    return &b;
+    return b;
 }

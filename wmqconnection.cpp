@@ -98,7 +98,7 @@ int WMQConnection::open()
         return -1;
     }
 
-    qDebug() << "MQR open options: " << hex << (mgr->openOptions() & MQCNO_HANDLE_SHARE_BLOCK);
+    qDebug() << __PRETTY_FUNCTION__ << ":MQR open options: " << hex << (mgr->openOptions() & MQCNO_HANDLE_SHARE_BLOCK);
 
     return 0;
 }

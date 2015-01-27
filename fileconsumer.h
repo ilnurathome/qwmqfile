@@ -53,6 +53,8 @@ class FileConsumer : public QObject
     QThread *commiterThread;
     FileConsumerCommiter *commiter;
 
+    bool isquit;
+
 public:
     FileConsumer();
     ~FileConsumer();
@@ -96,6 +98,8 @@ public slots:
 
     QObject *getCommiter();
     void moveToThread(QObject *thread);
+
+    void quit();
 };
 
 #endif // FILECONSUMER_H

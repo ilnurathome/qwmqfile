@@ -27,7 +27,8 @@ SOURCES += main.cpp \
     errormessage.cpp \
     wmqconsumer.cpp \
     bytemessage.cpp \
-    testmsgprocessor.cpp
+    testmsgprocessor.cpp \
+    fileproducer.cpp
 
 HEADERS += \
     fileconsumer.h \
@@ -42,7 +43,8 @@ HEADERS += \
     common.h \
     wmqconsumer.h \
     bytemessage.h \
-    testmsgprocessor.h
+    testmsgprocessor.h \
+    fileproducer.h
 
 
 win32:INCLUDEPATH += "C:/Program Files/IBM/WebSphere MQ/tools/cplus/include" \

@@ -45,7 +45,7 @@ iConnection *ConnectionPool::getNewConnection()
         connState.connection=conn;
         connState.state = OCCUPIED;
         connections.insert(conn, connState);
-//        qDebug() << "Insert new connection to pool, pool size: " << conn << "; size:" << connections.size();
+//        qDebug() << __PRETTY_FUNCTION__<< ":Insert new connection to pool, pool size: " << conn << "; size:" << connections.size();
     }
     return conn;
 }
@@ -65,11 +65,11 @@ ConnectionPool::~ConnectionPool()
             i.next();
             if (i.value().connection) {
                 connectionFactory->releaseConnection(i.value().connection);
-//                qDebug() << "Remove connection from pool : " << connections.size();
+//                qDebug() << __PRETTY_FUNCTION__<< ":Remove connection from pool : " << connections.size();
             }
         }
     connections.clear();
-//    qDebug() << "Clear connections pool";
+//    qDebug() << __PRETTY_FUNCTION__<< ":Clear connections pool";
 }
 
 iConnection *ConnectionPool::getConnection()
@@ -83,9 +83,9 @@ iConnection *ConnectionPool::getConnection()
     QMutableHashIterator <iConnection*, ConnectionState> i(connections);
     while(i.hasNext()) {
         i.next();
-//        qDebug() << "Connection state in pool : " << i.key() << " ; state: " << i.value().state;
+//        qDebug() << __PRETTY_FUNCTION__<< ":Connection state in pool : " << i.key() << " ; state: " << i.value().state;
         if (i.value().state == AVAILABLE && i.value().connection) {
-//            qDebug() << "Return connection from pool : " << i.key() << " ; size: " << connections.size();
+//            qDebug() << __PRETTY_FUNCTION__<< ":Return connection from pool : " << i.key() << " ; size: " << connections.size();
             i.value().state = OCCUPIED;
             conn = i.value().connection;
         }
@@ -98,24 +98,24 @@ iConnection *ConnectionPool::getConnection()
     mutex.unlock();
 
 //    if (!conn)
-//        qDebug() << "Connection pool is FULL return NULL";
+//        qDebug() << __PRETTY_FUNCTION__<< ":Connection pool is FULL return NULL";
     return conn;
 }
 
 int ConnectionPool::releaseConnection(iConnection *connection)
 {
     mutex.lock();
-//    qDebug() << "Try to release connection in pool: " << connection;
+//    qDebug() << __PRETTY_FUNCTION__<< ":Try to release connection in pool: " << connection;
 
     if (connections.contains(connection)) {
         connections[connection].state = AVAILABLE;
-//        qDebug() << "Release connection in pool: " << connection << "; size:" << connections.size();
+//        qDebug() << __PRETTY_FUNCTION__<< ":Release connection in pool: " << connection << "; size:" << connections.size();
     }
 
 //    QHash<iConnection*, ConnectionState>::iterator i = connections.find(connection);
 //    while (i!= connections.end() && i.key() == connection) {
 //        i.value().state = AVAILABLE;
-//        qDebug() << "Release connection in pool: " << connection << "; size:" << connections.size();
+//        qDebug() << __PRETTY_FUNCTION__<< ":Release connection in pool: " << connection << "; size:" << connections.size();
 //        ++i;
 //    }
     mutex.unlock();

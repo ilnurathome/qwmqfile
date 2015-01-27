@@ -12,12 +12,12 @@ protected:
     QString emiter;
 public:
     explicit Message(Message *msg = 0);
-    ~Message();
+    virtual ~Message();
 
     QObject* getBody();
     void setBody(QObject* value);
 
-    virtual QByteArray *getBodyAsByteArray()=0;
+    virtual QByteArray &getBodyAsByteArray()=0;
 
     int setHeader(QString name, QString value);
     QHash<QString, QString>& getHeaders();

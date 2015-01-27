@@ -49,7 +49,7 @@ pool.setMaxConnections(24);
 
 print("pool inited");
 
-var producer = new WMQProducer();
+var producer = new WMQProducerThreaded();
 producer.setConnectionFactory(pool);
 producer.setQueueName("Q");
 producer.setMaxWorkers(16);
