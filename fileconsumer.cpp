@@ -135,9 +135,14 @@ FileConsumer::FileConsumer() : commiterThread(NULL), commiter(NULL), isquit(fals
     commiter = new FileConsumerCommiter();
 }
 
-void FileConsumer::init()
+int FileConsumer::init()
 {
     commiterThread = new QThread();
+    if (!commiterThread) {
+        qCritical() << __PRETTY_FUNCTION__ << ": can't create commiter thread";
+        return -1;
+    }
+
     commiter->setArchPathFunc(archPathFunc);
     commiter->setArchPath(archPath);
     commiter->moveToThread(commiterThread);
@@ -146,6 +151,8 @@ void FileConsumer::init()
     QObject::connect(commiter, SIGNAL(rollbacked(Message*)), this, SLOT(rollback(Message*)), Qt::QueuedConnection);
 
     commiterThread->start();
+
+    return 0;
 }
 
 FileConsumer::~FileConsumer()
@@ -155,6 +162,9 @@ FileConsumer::~FileConsumer()
         commiterThread->deleteLater();
     }
 
+    if (commiter) {
+        delete commiter;
+    }
 }
 
 void FileConsumer::consume(const QString &path)
@@ -194,7 +204,7 @@ void FileConsumer::consume(const QString &path)
     if (procceded == 0 || commited == procceded)
         consuming = false;
 
-    qDebug() << __PRETTY_FUNCTION__<< ":Consumed : " << procceded;
+//    qDebug() << __PRETTY_FUNCTION__<< ":Consumed : " << procceded;
 }
 
 void FileConsumer::commit(Message *msg)

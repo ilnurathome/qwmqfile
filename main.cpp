@@ -145,7 +145,7 @@ int test_wmq2wmq(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
-    QThreadPool::globalInstance()->setMaxThreadCount(16);
+    QThreadPool::globalInstance()->setMaxThreadCount(24);
     qDebug() << "QThreadPool::globalInstance()->maxThreadCount()=" << QThreadPool::globalInstance()->maxThreadCount();
 
     WMQConnectionFactory connectionFactory;
@@ -172,6 +172,8 @@ int test_wmq2wmq(int argc, char *argv[])
         WMQConsumer *consumer = new WMQConsumer();
         consumer->setQueueName("Q1");
         consumer->setConnectionFactory((iConnectionFactory *)&pool);
+        consumer->setNConsumer(i);
+        consumer->setTransacted(true);
         consumer->init();
         consumer->setAutoDelete(false);
 
@@ -187,7 +189,7 @@ int test_wmq2wmq(int argc, char *argv[])
 
         wmqConsumers.append(consumer);
         wmqProducers.append(producer);
-        testMsgProcessors.append(testMsgProcessors);
+        testMsgProcessors.append(processor);
 
         QThreadPool::globalInstance()->start(consumer);
     }
@@ -225,8 +227,10 @@ int test_wmq2wmq(int argc, char *argv[])
     fileProducer.setPath("/tmp/filewmq/inbox");
 
     WMQConsumer consumer2file;
-    consumer2file.setQueueName("Q");
+    consumer2file.setQueueName("Q2");
     consumer2file.setConnectionFactory((iConnectionFactory *)&pool);
+    consumer2file.setNConsumer(100);
+    consumer2file.setTransacted(false);
     consumer2file.init();
     consumer2file.setAutoDelete(false);
 

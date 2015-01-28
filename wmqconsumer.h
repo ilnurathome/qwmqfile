@@ -7,7 +7,7 @@
 #include <QObject>
 #include <QHash>
 
-int parseMQRFHeader2(char* pszDataPointer, QHash<QString, QString> &props);
+MQLONG parseMQRFHeader2(char* pszDataPointer, size_t len, QHash<QString, QString> &props);
 
 
 class WMQConsumer : public QObject, public QRunnable
@@ -19,9 +19,15 @@ class WMQConsumer : public QObject, public QRunnable
     ImqQueue queue;
     iConnection* connection;
 
-    long msgCounter;
+    long msgConsumed;
+    long msgCommited;
+    long msgRollbacked;
+
+    int nConsumer;
 
     bool isquit;
+
+    bool transacted;
 
 public:
     explicit WMQConsumer(QObject *parent = 0);
@@ -33,6 +39,10 @@ public:
 
     iConnectionFactory *getConnectionFactory() const;
 
+    int getNConsumer() const;
+
+    bool getTransacted() const;
+
 signals:
     void message(Message *msg);
     void error(QString err);
@@ -40,10 +50,13 @@ signals:
 public slots:
     void commit(Message *msg);
     void rollback(Message *msg);
+
     void setQueueName(const QString &value);
     void setConnectionFactory(iConnectionFactory *value);
+    void setNConsumer(int value);
+    void setTransacted(bool value);
 
-    void init();
+    int init();
     void quit();
 };
 

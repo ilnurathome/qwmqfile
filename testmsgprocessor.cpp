@@ -22,6 +22,7 @@ void TestMsgProcessor::process(Message *msg)
         msg->setHeader("test4", "test4");
         msg->setHeader("test5", "test5");
         msg->setHeader("test6", "test6");
+        msg->setHeader(MESSAGE_CORRELATION_ID, "test");
     }
 
     emit proceed(msg);

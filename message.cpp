@@ -38,6 +38,22 @@ void Message::setEmiter(const QString &value)
 {
     emiter = value;
 }
+
+QByteArray Message::getMessageId() const
+{
+    return messageId;
+}
+
+QByteArray &Message::getMessageIdRef()
+{
+    return messageId;
+}
+
+void Message::setMessageId(const QByteArray &value)
+{
+    messageId = value;
+}
+
 Message::Message(Message* msg)
 {
     if(msg)

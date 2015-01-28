@@ -29,12 +29,13 @@ class WMQProducer : public QObject
 
     iConnectionFactory* connectionFactory;
     iConnection* connection;
-    QString queueName;
-    ImqQueue queue;
 
     bool inuse;
 
     int workerNumber;
+
+    QString queueName;
+    ImqQueue queue;
 
     QReadWriteLock lock;
 
@@ -84,8 +85,7 @@ class WMQProducerThreaded : public QObject
     int workerCounter;
 
 public:
-    WMQProducerThreaded();
-    WMQProducerThreaded(iConnectionFactory* connectionFactory);
+    WMQProducerThreaded(iConnectionFactory* connectionFactory=0);
     ~WMQProducerThreaded();
 
     static bool initScriptEngine(QScriptEngine &engine);
@@ -110,7 +110,7 @@ public slots:
     void setQueueName(const QString &value);
     void setMaxWorkers(int value);
     void setConnectionFactory(iConnectionFactory *value);
-    void init();
+    int init();
 
     QObject *getCommiter();
 };

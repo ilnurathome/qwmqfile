@@ -55,19 +55,34 @@ void WMQProducerThreaded::getError(Message *message, QString err)
 }
 
 
-void WMQProducerThreaded::init()
+int WMQProducerThreaded::init()
 {
     commiterThread = new QThread();
+    if (!commiterThread) {
+        qCritical() << __PRETTY_FUNCTION__ << ": can't create commiter thread";
+        return -1;
+    }
+
     commiter->moveToThread(commiterThread);
 
     for (int i=0; i<maxWorkers; i++) {
         QThread* thread = new QThread();
+        if (!thread) {
+            qCritical() << __PRETTY_FUNCTION__ << ": can't create thread: " << i;
+            return -1;
+        }
+        threads.append(thread);
+
         WMQProducer* worker = new WMQProducer(connectionFactory);
+        if (!worker) {
+            qCritical() << __PRETTY_FUNCTION__ << ": can't create worker: " << i;
+            return -1;
+        }
+
         worker->setWorkerNumber(i);
         worker->setQueueName(queueName);
         worker->moveToThread(thread);
 
-        threads.append(thread);
         workers.append(worker);
 
         QObject::connect(worker, SIGNAL(produced(Message*)), commiter, SLOT(commit(Message*)), Qt::QueuedConnection);
@@ -77,6 +92,8 @@ void WMQProducerThreaded::init()
     }
 
     commiterThread->start();
+
+    return 0;
 }
 
 QObject *WMQProducerThreaded::getCommiter()
@@ -104,12 +121,8 @@ void WMQProducerThreaded::setConnectionFactory(iConnectionFactory *value)
 {
     connectionFactory = value;
 }
-WMQProducerThreaded::WMQProducerThreaded(): workerCounter(0)
-{
-    commiter = new WMQProducerCommiter();
-}
 
-WMQProducerThreaded::WMQProducerThreaded(iConnectionFactory* connectionFactory): workerCounter(0)
+WMQProducerThreaded::WMQProducerThreaded(iConnectionFactory* connectionFactory) : commiterThread(NULL), workerCounter(0)
 {
     this->connectionFactory = connectionFactory;
     maxWorkers = 4;
@@ -121,8 +134,10 @@ WMQProducerThreaded::~WMQProducerThreaded()
     QListIterator<QThread*> t(threads);
     while(t.hasNext()) {
         QThread* thread = t.next();
-        if (thread)
+        if (thread) {
+            thread->quit();
             delete thread;
+        }
     }
     threads.clear();
 
@@ -133,6 +148,15 @@ WMQProducerThreaded::~WMQProducerThreaded()
             delete worker;
     }
     workers.clear();
+
+    if (commiterThread) {
+        commiterThread->quit();
+        delete commiterThread;
+    }
+
+    if (commiter) {
+        delete commiter;
+    }
 }
 
 QByteArray* buildMQRFHeader2(Message *msg)
@@ -281,13 +305,13 @@ void WMQProducer::setConnectionFactory(iConnectionFactory *value)
     connectionFactory = value;
 }
 
-WMQProducer::WMQProducer() : inuse(false), connectionFactory(NULL), connection(NULL)
+WMQProducer::WMQProducer() : connectionFactory(NULL), connection(NULL), inuse(false)
 {
     QObject::connect(this, SIGNAL(got(Message*)), this, SLOT(produce(Message*)), Qt::QueuedConnection);
     qDebug() << __PRETTY_FUNCTION__;
 }
 
-WMQProducer::WMQProducer(iConnectionFactory *_connectionFactory) : inuse(false), connectionFactory(_connectionFactory), connection(NULL)
+WMQProducer::WMQProducer(iConnectionFactory *_connectionFactory) : connectionFactory(_connectionFactory), connection(NULL), inuse(false)
 {
     QObject::connect(this, SIGNAL(got(Message*)), this, SLOT(produce(Message*)), Qt::QueuedConnection);
     qDebug() << __PRETTY_FUNCTION__;
@@ -337,6 +361,7 @@ void WMQProducer::produce(Message *message)
         connection = connectionFactory->getConnection();
 
     if (!connection) {
+        qCritical() << "Can't get connection";
         message->setHeader("emiter", "WMQProducerThread");
         emit error(message, "can't get connection");
         emit rollback(message);
@@ -358,10 +383,6 @@ void WMQProducer::produce(Message *message)
         if (queue.reasonCode()) {
             qCritical() << "ImqQueue::open ended with reason code " << (int)queue.reasonCode();
             qCritical() << "ImqQueue::open ended with reason code " << (int)queue.completionCode();
-            //        ErrorMessage errmsg;
-            //        errmsg.setErrorCode(0);
-            //        errmsg.setErrorString("ImqQueue::open error");
-            //        emit error(message, errmsg);
             message->setHeader("emiter", "WMQProducerThread");
 //            emit error(message, QString("ImqQueue::open error with reason code %1").arg((int)queue.reasonCode()));
             emit rollback(message);
@@ -382,6 +403,19 @@ void WMQProducer::produce(Message *message)
             msg.setFormat(MQFMT_STRING);
         }
 
+        if(message->getHeaders().contains(MESSAGE_CORRELATION_ID)) {
+            QByteArray qcid;
+            qcid.fill((char)0, MQ_MSG_ID_LENGTH);
+            qcid.replace(0, message->getHeaders().value(MESSAGE_CORRELATION_ID).size(), message->getHeaders().value(MESSAGE_CORRELATION_ID).toLocal8Bit().constData(), message->getHeaders().value(MESSAGE_CORRELATION_ID).size());
+
+            ImqBin correlid((void*)qcid.constData(), MQ_MSG_ID_LENGTH);
+
+            if (!msg.setCorrelationId(correlid)) {
+                qCritical() << __PRETTY_FUNCTION__ << ": can't set correlation id";
+            }
+
+        }
+
         //        qDebug() << "bodyArray size: " << bodyArray->size();
 
         bodyArray->append(message->getBodyAsByteArray());
@@ -389,17 +423,11 @@ void WMQProducer::produce(Message *message)
         msg.setMessageType(MQMT_DATAGRAM);
         msg.setPersistence(MQPER_PERSISTENT);
 
-        //        qDebug() << "Write body to message: " << bodyArray->size();// << endl << bodyArray->toHex();
-        //msg.useFullBuffer(bodyArray->constData(), bodyArray->size());
         msg.write(bodyArray->size(), bodyArray->constData());
 
-        ImqPutMessageOptions pmo;
-
         if(!queue.put(msg)) {
-            //            ErrorMessage errmsg;
-            //            errmsg.setErrorCode(0);
-            //            errmsg.setErrorString("ImqQueue::put error");
-            //            emit error(message, errmsg);
+            qCritical() << "ImqQueue::put ended with reason code " << (int)queue.reasonCode();
+            qCritical() << "ImqQueue::put ended with reason code " << (int)queue.completionCode();
 //            emit error(message, QString("ImqQueue::put error with reason code %1").arg((int)queue.reasonCode()));
             emit rollback(message);
             return;
@@ -412,10 +440,6 @@ void WMQProducer::produce(Message *message)
 
         msg.clearMessage();
     } else {
-        //        ErrorMessage errmsg;
-        //        errmsg.setErrorCode(0);
-        //        errmsg.setErrorString("bodyArray is NULL");
-        //        emit error(message, errmsg);
         emit error(message, QString("bodyArray is NULL"));
         emit rollback(message);
         return;

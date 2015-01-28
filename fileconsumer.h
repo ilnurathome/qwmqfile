@@ -77,7 +77,7 @@ signals:
     void message(Message *msg);
 
 public slots:
-    void init();
+    int init();
 
     void consume();
     void consume(const QString& str);
