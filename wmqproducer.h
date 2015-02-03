@@ -6,7 +6,7 @@
 #include "wmqconnection.h"
 #include "message.h"
 
-QByteArray* buildMQRFHeader2(QSharedPointer<Message>msg);
+QByteArray* buildMQRFHeader2(PMessage msg);
 
 class WMQProducerCommiter : public QObject
 {
@@ -15,11 +15,11 @@ public:
     static bool initScriptEngine(QScriptEngine &engine);
 
 signals:
-    void commited(QSharedPointer<Message>msg);
-    void rollbacked(QSharedPointer<Message>msg);
+    void commited(PMessage msg);
+    void rollbacked(PMessage msg);
 public slots:
-    void commit(QSharedPointer<Message>msg);
-    void rollback(QSharedPointer<Message>msg);
+    void commit(PMessage msg);
+    void rollback(PMessage msg);
 
 };
 
@@ -46,20 +46,20 @@ public:
 
     static bool initScriptEngine(QScriptEngine &engine);
 
-    bool doSend(QSharedPointer<Message>msg);
+    bool doSend(PMessage msg);
 
     QString getQueueName() const;
 
     iConnectionFactory *getConnectionFactory() const;
 
 signals:
-    void produced(QSharedPointer<Message>msg);
-    void got(QSharedPointer<Message>msg);
-    void error(QSharedPointer<Message>message, QString err);
-    void rollback(QSharedPointer<Message>msg);
+    void produced(PMessage msg);
+    void got(PMessage msg);
+    void error(PMessage message, QString err);
+    void rollback(PMessage msg);
 
 public slots:
-    void produce(QSharedPointer<Message>message);
+    void produce(PMessage message);
     void setQueueName(const QString &value);
     void setWorkerNumber(int n);
 
@@ -99,14 +99,14 @@ public:
     iConnectionFactory *getConnectionFactory() const;
 
 signals:
-    void produced(QSharedPointer<Message>msg);
-    void error(QSharedPointer<Message>message, QString err);
-    void rollback(QSharedPointer<Message>message);
+    void produced(PMessage msg);
+    void error(PMessage message, QString err);
+    void rollback(PMessage message);
 
 public slots:
-    void produce(QSharedPointer<Message>msg);
-    void workerProduced(QSharedPointer<Message>msg);
-    void getError(QSharedPointer<Message>message, QString err);
+    void produce(PMessage msg);
+    void workerProduced(PMessage msg);
+    void getError(PMessage message, QString err);
     void setQueueName(const QString &value);
     void setMaxWorkers(int value);
     void setConnectionFactory(iConnectionFactory *value);

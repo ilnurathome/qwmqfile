@@ -147,8 +147,8 @@ int FileConsumer::init()
     commiter->setArchPath(archPath);
     commiter->moveToThread(commiterThread);
 
-    QObject::connect(commiter, SIGNAL(commited(QSharedPointer<Message>)), this, SLOT(commit(QSharedPointer<Message>)), Qt::QueuedConnection);
-    QObject::connect(commiter, SIGNAL(rollbacked(QSharedPointer<Message>)), this, SLOT(rollback(QSharedPointer<Message>)), Qt::QueuedConnection);
+    QObject::connect(commiter, SIGNAL(commited(PMessage)), this, SLOT(commit(PMessage)), Qt::QueuedConnection);
+    QObject::connect(commiter, SIGNAL(rollbacked(PMessage)), this, SLOT(rollback(PMessage)), Qt::QueuedConnection);
 
     commiterThread->start();
 
@@ -199,7 +199,7 @@ void FileConsumer::consume(const QString &path)
         msg->setBody(new QFile(filepath));
         procceded++;
 
-        emit message(QSharedPointer<Message>((Message*)msg));
+        emit message(PMessage((Message*)msg));
     }
     processing = false;
     if (procceded == 0 || commited == procceded)
@@ -208,7 +208,7 @@ void FileConsumer::consume(const QString &path)
     //    qDebug() << __PRETTY_FUNCTION__<< ":Consumed : " << procceded;
 }
 
-void FileConsumer::commit(QSharedPointer<Message> msg)
+void FileConsumer::commit(PMessage msg)
 {
     commited++;
 
@@ -223,7 +223,7 @@ void FileConsumer::commit(QSharedPointer<Message> msg)
     //    if(msg) delete msg;
 }
 
-void FileConsumer::rollback(QSharedPointer<Message> message)
+void FileConsumer::rollback(PMessage message)
 {
     Message *msg = message.data();
     commited++;
@@ -269,7 +269,7 @@ bool FileConsumerCommiter::initScriptEngine(QScriptEngine &engine)
     return true;
 }
 
-void FileConsumerCommiter::commit(QSharedPointer<Message> msg)
+void FileConsumerCommiter::commit(PMessage msg)
 {
     FileMessage *fmsg = (FileMessage*) msg.data();
     //    qDebug() << __PRETTY_FUNCTION__<< ":" << msg.getHeaders().value("FileName") << " ; emiter: " << msg.getHeaders().value("emiter");
@@ -310,7 +310,7 @@ void FileConsumerCommiter::commit(QSharedPointer<Message> msg)
     emit commited(msg);
 }
 
-void FileConsumerCommiter::rollback(QSharedPointer<Message> msg)
+void FileConsumerCommiter::rollback(PMessage msg)
 {
     emit rollbacked(msg);
 }

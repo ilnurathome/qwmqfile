@@ -21,7 +21,7 @@ bool HTTPProducer::initScriptEngine(QScriptEngine &engine)
     return true;
 }
 
-void HTTPProducer::produce(QSharedPointer<Message> message)
+void HTTPProducer::produce(PMessage message)
 {
     // create custom temporary event loop on stack
     QEventLoop eventLoop;
@@ -52,7 +52,7 @@ void HTTPProducer::produce(QSharedPointer<Message> message)
 
         Message *retmsg = new Message(reply->readAll());
 
-        emit produced(QSharedPointer<Message>(retmsg));
+        emit produced(PMessage(retmsg));
 
         // NB! temp
         emit commited(message);

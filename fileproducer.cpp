@@ -19,7 +19,7 @@ FileProducer::FileProducer(QObject *parent) :
 {
 }
 
-void FileProducer::produce(QSharedPointer<Message> m)
+void FileProducer::produce(PMessage m)
 {
     Message *message = m.data();
     QString fullPath(path + "/");

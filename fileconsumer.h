@@ -23,12 +23,12 @@ public:
     QString getArchPath() const;
 
 signals:
-    void commited(QSharedPointer<Message> msg);
-    void rollbacked(QSharedPointer<Message> msg);
+    void commited(PMessage msg);
+    void rollbacked(PMessage msg);
 
 public slots:
-    void commit(QSharedPointer<Message> msg);
-    void rollback(QSharedPointer<Message> msg);
+    void commit(PMessage msg);
+    void rollback(PMessage msg);
     void setArchPath(const QString &value);
     void setArchPathFunc(const STD_FUNCTION<QString ()> &value);
 };
@@ -76,7 +76,7 @@ public:
     int getBatchSize() const;
 
 signals:
-    void message(QSharedPointer<Message> msg);
+    void message(PMessage msg);
 
 public slots:
     int init();
@@ -84,8 +84,8 @@ public slots:
     void consume();
     void consume(const QString& str);
 
-    void commit(QSharedPointer<Message> msg);
-    void rollback(QSharedPointer<Message> msg);
+    void commit(PMessage msg);
+    void rollback(PMessage msg);
 
     void setBatchSize(int value);
 

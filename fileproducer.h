@@ -19,13 +19,13 @@ public:
 
 
 signals:
-    void produced(QSharedPointer<Message> msg);
-    void got(QSharedPointer<Message> msg);
-    void error(QSharedPointer<Message> message, QString err);
-    void rollback(QSharedPointer<Message> msg);
+    void produced(PMessage msg);
+    void got(PMessage msg);
+    void error(PMessage message, QString err);
+    void rollback(PMessage msg);
 
 public slots:
-    void produce(QSharedPointer<Message> message);
+    void produce(PMessage message);
 
     QString getPath() const;
     void setPath(const QString &value);

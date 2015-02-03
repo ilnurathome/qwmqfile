@@ -21,17 +21,17 @@ public:
     explicit File2ByteArrayProcess(QObject *parent = 0);
 
 signals:
-    void proceed(QSharedPointer<Message> msg);
-    void error(QSharedPointer<Message> msg, QString err);
+    void proceed(PMessage msg);
+    void error(PMessage msg, QString err);
 
-    void commited(QSharedPointer<Message> msg);
-    void rollbacked(QSharedPointer<Message> msg);
+    void commited(PMessage msg);
+    void rollbacked(PMessage msg);
 
 public slots:
-    void process(QSharedPointer<Message> msg);
+    void process(PMessage msg);
 
-    void commit(QSharedPointer<Message> msg);
-    void rollback(QSharedPointer<Message> msg);
+    void commit(PMessage msg);
+    void rollback(PMessage msg);
 };
 
 

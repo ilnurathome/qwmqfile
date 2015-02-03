@@ -15,13 +15,13 @@ public:
     static bool initScriptEngine(QScriptEngine &engine);
 
 signals:
-    void produced(QSharedPointer<Message> msg);
-    void error(QSharedPointer<Message> message, QString err);
-    void commited(QSharedPointer<Message> msg);
-    void rollbacked(QSharedPointer<Message> msg);
+    void produced(PMessage msg);
+    void error(PMessage message, QString err);
+    void commited(PMessage msg);
+    void rollbacked(PMessage msg);
 
 public slots:
-    void produce(QSharedPointer<Message> message);
+    void produce(PMessage message);
 
 };
 

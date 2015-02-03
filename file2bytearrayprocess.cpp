@@ -6,7 +6,7 @@ File2ByteArrayProcess::File2ByteArrayProcess(QObject *parent) : QObject(parent),
 
 }
 
-void File2ByteArrayProcess::process(QSharedPointer<Message> message)
+void File2ByteArrayProcess::process(PMessage message)
 {
     FileMessage *msg = (FileMessage*) message.data();
 
@@ -23,24 +23,24 @@ void File2ByteArrayProcess::process(QSharedPointer<Message> message)
     //            msgs.insert((Message*)&retmsg,(Message*)&msg);
     //        }
 
-    emit proceed(QSharedPointer<Message>(new Message(QVariant(b))));
+    emit proceed(PMessage(new Message(QVariant(b))));
 }
 
-void File2ByteArrayProcess::commit(QSharedPointer<Message> msg)
+void File2ByteArrayProcess::commit(PMessage msg)
 {
     if (requestReply) {
         if (msgs.contains(msg.data())) {
-            emit commited(QSharedPointer<Message>(msgs.value(msg.data())));
+            emit commited(PMessage(msgs.value(msg.data())));
             msgs.remove(msg.data());
         }
     }
 }
 
-void File2ByteArrayProcess::rollback(QSharedPointer<Message> msg)
+void File2ByteArrayProcess::rollback(PMessage msg)
 {
     if (requestReply) {
         if (msgs.contains(msg.data())) {
-            emit commited(QSharedPointer<Message>(msgs.value(msg.data())));
+            emit commited(PMessage(msgs.value(msg.data())));
             msgs.remove(msg.data());
         }
     }

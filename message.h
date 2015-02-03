@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QByteArray>
 #include <QVariant>
+#include <QSharedPointer>
 
 #define MESSAGE_CORRELATION_ID "CorrelationId"
 
@@ -39,6 +40,8 @@ public:
     QVariant &getBodyRef();
     void setBody(const QVariant &value);
 };
+
+typedef QSharedPointer<Message> PMessage;
 
 /**
  * example usage

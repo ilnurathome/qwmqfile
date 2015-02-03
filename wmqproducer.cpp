@@ -34,7 +34,7 @@ void WMQProducerThreaded::setQueueName(const QString &value)
     queueName = value;
 }
 
-void WMQProducerThreaded::produce(QSharedPointer<Message>msg)
+void WMQProducerThreaded::produce(PMessage  msg)
 {
     while (true) {
         if (workers.at(nextRoundRobbin())->doSend(msg))
@@ -42,14 +42,14 @@ void WMQProducerThreaded::produce(QSharedPointer<Message>msg)
     }
 }
 
-void WMQProducerThreaded::workerProduced(QSharedPointer<Message>msg)
+void WMQProducerThreaded::workerProduced(PMessage  msg)
 {
     if (msg.data())
         msg.data()->setHeader("emiter", "WMQProducer");
     emit produced(msg);
 }
 
-void WMQProducerThreaded::getError(QSharedPointer<Message>message, QString err)
+void WMQProducerThreaded::getError(PMessage message, QString err)
 {
     qCritical() << "WMQProducer got error while proccesing message: " << &message << ", err: " << err;
     emit rollback(message);
@@ -86,8 +86,8 @@ int WMQProducerThreaded::init()
 
         workers.append(worker);
 
-        QObject::connect(worker, SIGNAL(produced(Message*)), commiter, SLOT(commit(Message*)), Qt::QueuedConnection);
-        QObject::connect(worker, SIGNAL(rollback(Message*)), commiter, SLOT(rollback(Message*)), Qt::QueuedConnection);
+        QObject::connect(worker, SIGNAL(produced(PMessage)), commiter, SLOT(commit(PMessage)), Qt::QueuedConnection);
+        QObject::connect(worker, SIGNAL(rollback(PMessage)), commiter, SLOT(rollback(PMessage)), Qt::QueuedConnection);
 
         thread->start();
     }
@@ -308,13 +308,13 @@ void WMQProducer::setConnectionFactory(iConnectionFactory *value)
 
 WMQProducer::WMQProducer() : connectionFactory(NULL), connection(NULL), inuse(false)
 {
-    QObject::connect(this, SIGNAL(got(Message*)), this, SLOT(produce(Message*)), Qt::QueuedConnection);
+    QObject::connect(this, SIGNAL(got(PMessage)), this, SLOT(produce(PMessage)), Qt::QueuedConnection);
     qDebug() << __PRETTY_FUNCTION__;
 }
 
 WMQProducer::WMQProducer(iConnectionFactory *_connectionFactory) : connectionFactory(_connectionFactory), connection(NULL), inuse(false)
 {
-    QObject::connect(this, SIGNAL(got(Message*)), this, SLOT(produce(Message*)), Qt::QueuedConnection);
+    QObject::connect(this, SIGNAL(got(PMessage)), this, SLOT(produce(PMessage)), Qt::QueuedConnection);
     qDebug() << __PRETTY_FUNCTION__;
 }
 
@@ -340,7 +340,7 @@ void WMQProducer::setWorkerNumber(int n)
     workerNumber = n;
 }
 
-bool WMQProducer::doSend(QSharedPointer<Message>msg)
+bool WMQProducer::doSend(PMessage msg)
 {
     QReadLocker locker(&lock);
     if (inuse) {
@@ -357,7 +357,7 @@ bool WMQProducer::doSend(QSharedPointer<Message>msg)
     return true;
 }
 
-void WMQProducer::produce(QSharedPointer<Message>message)
+void WMQProducer::produce(PMessage message)
 {
     if (message.data() == NULL) {
         qWarning() << "Message is NULL";
@@ -474,14 +474,14 @@ bool WMQProducerCommiter::initScriptEngine(QScriptEngine &engine)
     return true;
 }
 
-void WMQProducerCommiter::commit(QSharedPointer<Message>msg)
+void WMQProducerCommiter::commit(PMessage msg)
 {
     //    qDebug() << "WMQProducerCommiter::commit : " << msg.getHeaders().value("FileName");
     //    msg.setHeader("emiter", "WMQProducerCommiter");
     emit commited(msg);
 }
 
-void WMQProducerCommiter::rollback(QSharedPointer<Message>msg)
+void WMQProducerCommiter::rollback(PMessage msg)
 {
     //    qDebug() << "WMQProducerCommiter::rollback";
     //    msg.setHeader("emiter", "WMQProducerCommiter");
