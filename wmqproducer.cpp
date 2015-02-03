@@ -34,7 +34,7 @@ void WMQProducerThreaded::setQueueName(const QString &value)
     queueName = value;
 }
 
-void WMQProducerThreaded::produce(Message &msg)
+void WMQProducerThreaded::produce(QSharedPointer<Message>msg)
 {
     while (true) {
         if (workers.at(nextRoundRobbin())->doSend(msg))
@@ -42,13 +42,14 @@ void WMQProducerThreaded::produce(Message &msg)
     }
 }
 
-void WMQProducerThreaded::workerProduced(Message &msg)
+void WMQProducerThreaded::workerProduced(QSharedPointer<Message>msg)
 {
-    msg.setHeader("emiter", "WMQProducer");
+    if (msg.data())
+        msg.data()->setHeader("emiter", "WMQProducer");
     emit produced(msg);
 }
 
-void WMQProducerThreaded::getError(Message &message, QString err)
+void WMQProducerThreaded::getError(QSharedPointer<Message>message, QString err)
 {
     qCritical() << "WMQProducer got error while proccesing message: " << &message << ", err: " << err;
     emit rollback(message);
@@ -339,7 +340,7 @@ void WMQProducer::setWorkerNumber(int n)
     workerNumber = n;
 }
 
-bool WMQProducer::doSend(Message &msg)
+bool WMQProducer::doSend(QSharedPointer<Message>msg)
 {
     QReadLocker locker(&lock);
     if (inuse) {
@@ -349,20 +350,28 @@ bool WMQProducer::doSend(Message &msg)
 
     inuse = true;
 
-    msg.setHeader("emiter", "WMQProducerThread");
+    if(msg.data())
+        msg.data()->setHeader("emiter", "WMQProducerThread");
     emit got(msg);
 
     return true;
 }
 
-void WMQProducer::produce(Message &message)
+void WMQProducer::produce(QSharedPointer<Message>message)
 {
+    if (message.data() == NULL) {
+        qWarning() << "Message is NULL";
+        emit error(message, "can't get connection");
+        emit rollback(message);
+        return;
+    }
+
     if (!connection)
         connection = connectionFactory->getConnection();
 
     if (!connection) {
         qCritical() << "Can't get connection";
-        message.setHeader("emiter", "WMQProducerThread");
+        message.data()->setHeader("emiter", "WMQProducerThread");
         emit error(message, "can't get connection");
         emit rollback(message);
         return;
@@ -383,7 +392,7 @@ void WMQProducer::produce(Message &message)
         if (queue.reasonCode()) {
             qCritical() << "ImqQueue::open ended with reason code " << (int)queue.reasonCode();
             qCritical() << "ImqQueue::open ended with reason code " << (int)queue.completionCode();
-            message.setHeader("emiter", "WMQProducerThread");
+            message.data()->setHeader("emiter", "WMQProducerThread");
             //            emit error(message, QString("ImqQueue::open error with reason code %1").arg((int)queue.reasonCode()));
             emit rollback(message);
             return;
@@ -393,7 +402,7 @@ void WMQProducer::produce(Message &message)
     QByteArray* bodyArray = new QByteArray();
 
     if (bodyArray != NULL) {
-        QByteArray *rfh2Header = buildMQRFHeader2(message);
+        QByteArray *rfh2Header = buildMQRFHeader2(*message.data());
 
         if (rfh2Header) {
             //            qDebug() << "Append rfh2 header to bodyArray ";// << rfh2Header->toHex();
@@ -403,10 +412,10 @@ void WMQProducer::produce(Message &message)
             msg.setFormat(MQFMT_STRING);
         }
 
-        if(message.getHeaders().contains(MESSAGE_CORRELATION_ID)) {
+        if(message.data()->getHeaders().contains(MESSAGE_CORRELATION_ID)) {
             QByteArray qcid;
             qcid.fill((char)0, MQ_MSG_ID_LENGTH);
-            qcid.replace(0, message.getHeaders().value(MESSAGE_CORRELATION_ID).size(), message.getHeaders().value(MESSAGE_CORRELATION_ID).toLocal8Bit().constData(), message.getHeaders().value(MESSAGE_CORRELATION_ID).size());
+            qcid.replace(0, message.data()->getHeaders().value(MESSAGE_CORRELATION_ID).size(), message.data()->getHeaders().value(MESSAGE_CORRELATION_ID).toLocal8Bit().constData(), message.data()->getHeaders().value(MESSAGE_CORRELATION_ID).size());
 
             ImqBin correlid((void*)qcid.constData(), MQ_MSG_ID_LENGTH);
 
@@ -418,7 +427,7 @@ void WMQProducer::produce(Message &message)
 
         //        qDebug() << "bodyArray size: " << bodyArray->size();
 
-        bodyArray->append(message.getBodyAsByteArray());
+        bodyArray->append(message.data()->getBodyAsByteArray());
 
         msg.setMessageType(MQMT_DATAGRAM);
         msg.setPersistence(MQPER_PERSISTENT);
@@ -465,14 +474,14 @@ bool WMQProducerCommiter::initScriptEngine(QScriptEngine &engine)
     return true;
 }
 
-void WMQProducerCommiter::commit(Message &msg)
+void WMQProducerCommiter::commit(QSharedPointer<Message>msg)
 {
     //    qDebug() << "WMQProducerCommiter::commit : " << msg.getHeaders().value("FileName");
     //    msg.setHeader("emiter", "WMQProducerCommiter");
     emit commited(msg);
 }
 
-void WMQProducerCommiter::rollback(Message &msg)
+void WMQProducerCommiter::rollback(QSharedPointer<Message>msg)
 {
     //    qDebug() << "WMQProducerCommiter::rollback";
     //    msg.setHeader("emiter", "WMQProducerCommiter");

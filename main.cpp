@@ -183,11 +183,11 @@ int test_wmq2wmq(int argc, char *argv[])
         QObject::connect(&a, SIGNAL(aboutToQuit()), consumer, SLOT(quit()), Qt::DirectConnection);
 
         // message signals
-        QObject::connect(consumer, SIGNAL(message(Message*)), processor, SLOT(process(Message*)), Qt::DirectConnection);
-        QObject::connect(processor, SIGNAL(proceed(Message*)), producer, SLOT(produce(Message*)), Qt::DirectConnection);
+        QObject::connect(consumer, SIGNAL(message(QSharedPointer<Message>)), processor, SLOT(process(QSharedPointer<Message>)), Qt::DirectConnection);
+        QObject::connect(processor, SIGNAL(proceed(QSharedPointer<Message>)), producer, SLOT(produce(QSharedPointer<Message>)), Qt::DirectConnection);
 
-        QObject::connect(producer, SIGNAL(produced(Message*)), consumer, SLOT(commit(Message*)), Qt::DirectConnection);
-        QObject::connect(producer, SIGNAL(rollback(Message*)), consumer, SLOT(rollback(Message*)), Qt::DirectConnection);
+        QObject::connect(producer, SIGNAL(produced(QSharedPointer<Message>)), consumer, SLOT(commit(QSharedPointer<Message>)), Qt::DirectConnection);
+        QObject::connect(producer, SIGNAL(rollback(QSharedPointer<Message>)), consumer, SLOT(rollback(QSharedPointer<Message>)), Qt::DirectConnection);
 
         wmqConsumers.append(consumer);
         wmqProducers.append(producer);
@@ -218,10 +218,10 @@ int test_wmq2wmq(int argc, char *argv[])
     QObject::connect(&a, SIGNAL(aboutToQuit()), &fileConsumer, SLOT(quit()), Qt::DirectConnection);
 
     // message signals
-    QObject::connect(&fileConsumer, SIGNAL(message(Message*)), &wfproducer, SLOT(produce(Message*)));
+    QObject::connect(&fileConsumer, SIGNAL(message(QSharedPointer<Message>)), &wfproducer, SLOT(produce(QSharedPointer<Message>)));
 
-    QObject::connect(wfproducer.getCommiter(), SIGNAL(commited(Message*)), fileConsumer.getCommiter(), SLOT(commit(Message*)), Qt::QueuedConnection);
-    QObject::connect(wfproducer.getCommiter(), SIGNAL(rollbacked(Message*)), fileConsumer.getCommiter(), SLOT(rollback(Message*)), Qt::QueuedConnection);
+    QObject::connect(wfproducer.getCommiter(), SIGNAL(commited(QSharedPointer<Message>)), fileConsumer.getCommiter(), SLOT(commit(QSharedPointer<Message>)), Qt::QueuedConnection);
+    QObject::connect(wfproducer.getCommiter(), SIGNAL(rollbacked(QSharedPointer<Message>)), fileConsumer.getCommiter(), SLOT(rollback(QSharedPointer<Message>)), Qt::QueuedConnection);
 
 
 
@@ -241,10 +241,10 @@ int test_wmq2wmq(int argc, char *argv[])
 
     // message signals
 
-    QObject::connect(&consumer2file, SIGNAL(message(Message*)), &fileProducer, SLOT(produce(Message*)), Qt::DirectConnection);
+    QObject::connect(&consumer2file, SIGNAL(message(QSharedPointer<Message>)), &fileProducer, SLOT(produce(QSharedPointer<Message>)), Qt::DirectConnection);
 
-    QObject::connect(&fileProducer, SIGNAL(produced(Message*)), &consumer2file, SLOT(commit(Message*)), Qt::DirectConnection);
-    QObject::connect(&fileProducer, SIGNAL(rollback(Message*)), &consumer2file, SLOT(rollback(Message*)), Qt::DirectConnection);
+    QObject::connect(&fileProducer, SIGNAL(produced(QSharedPointer<Message>)), &consumer2file, SLOT(commit(QSharedPointer<Message>)), Qt::DirectConnection);
+    QObject::connect(&fileProducer, SIGNAL(rollback(QSharedPointer<Message>)), &consumer2file, SLOT(rollback(QSharedPointer<Message>)), Qt::DirectConnection);
 
     QThreadPool::globalInstance()->start(&consumer2file);
 
@@ -347,12 +347,12 @@ int test_fileconv(int argc, char *argv[])
     QObject::connect(&a, SIGNAL(aboutToQuit()), &fileConsumer, SLOT(quit()), Qt::DirectConnection);
 
     // message signals
-    QObject::connect(&fileConsumer, SIGNAL(message(Message*)), &convproc, SLOT(process(Message*)));
+    QObject::connect(&fileConsumer, SIGNAL(message(QSharedPointer<Message>)), &convproc, SLOT(process(QSharedPointer<Message>)));
 
-    QObject::connect(&convproc, SIGNAL(proceed(Message*)), &httpproducer, SLOT(produce(Message*)));
+    QObject::connect(&convproc, SIGNAL(proceed(QSharedPointer<Message>)), &httpproducer, SLOT(produce(QSharedPointer<Message>)));
 
-    QObject::connect(&convproc, SIGNAL(commited(Message*)), fileConsumer.getCommiter(), SLOT(commit(Message*)), Qt::QueuedConnection);
-    QObject::connect(&convproc, SIGNAL(rollbacked(Message*)), fileConsumer.getCommiter(), SLOT(rollback(Message*)), Qt::QueuedConnection);
+    QObject::connect(&convproc, SIGNAL(commited(QSharedPointer<Message>)), fileConsumer.getCommiter(), SLOT(commit(QSharedPointer<Message>)), Qt::QueuedConnection);
+    QObject::connect(&convproc, SIGNAL(rollbacked(QSharedPointer<Message>)), fileConsumer.getCommiter(), SLOT(rollback(QSharedPointer<Message>)), Qt::QueuedConnection);
 
 #ifndef _WIN23
     registerCleanExit();
@@ -404,8 +404,8 @@ int test_filehttpfile(int argc, char *argv[])
     QObject::connect(&httpproducer, SIGNAL(produced(QSharedPointer<Message>)), &fileProducer, SLOT(produce(QSharedPointer<Message>)), Qt::DirectConnection);
     //    QObject::connect(&httpproducer, SIGNAL(commited(Message)), &convproc, SLOT(commit(Message)), Qt::DirectConnection);
 
-    //    QObject::connect(&fileProducer, SIGNAL(produced(Message*)), &consumer2file, SLOT(commit(Message*)), Qt::DirectConnection);
-    //    QObject::connect(&fileProducer, SIGNAL(rollback(Message*)), &consumer2file, SLOT(rollback(Message*)), Qt::DirectConnection);
+    //    QObject::connect(&fileProducer, SIGNAL(produced(QSharedPointer<Message>)), &consumer2file, SLOT(commit(QSharedPointer<Message>)), Qt::DirectConnection);
+    //    QObject::connect(&fileProducer, SIGNAL(rollback(QSharedPointer<Message>)), &consumer2file, SLOT(rollback(QSharedPointer<Message>)), Qt::DirectConnection);
 
 #ifndef _WIN23
     registerCleanExit();
