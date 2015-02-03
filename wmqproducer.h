@@ -6,7 +6,7 @@
 #include "wmqconnection.h"
 #include "message.h"
 
-QByteArray* buildMQRFHeader2(Message *msg);
+QByteArray* buildMQRFHeader2(Message &msg);
 
 class WMQProducerCommiter : public QObject
 {
@@ -15,11 +15,11 @@ public:
     static bool initScriptEngine(QScriptEngine &engine);
 
 signals:
-    void commited(Message *msg);
-    void rollbacked(Message *msg);
+    void commited(Message &msg);
+    void rollbacked(Message &msg);
 public slots:
-    void commit(Message *msg);
-    void rollback(Message *msg);
+    void commit(Message &msg);
+    void rollback(Message &msg);
 
 };
 
@@ -46,20 +46,20 @@ public:
 
     static bool initScriptEngine(QScriptEngine &engine);
 
-    bool doSend(Message *msg);
+    bool doSend(Message &msg);
 
     QString getQueueName() const;
 
     iConnectionFactory *getConnectionFactory() const;
 
 signals:
-    void produced(Message *msg);
-    void got(Message *msg);
-    void error(Message *message, QString err);
-    void rollback(Message *msg);
+    void produced(Message &msg);
+    void got(Message &msg);
+    void error(Message &message, QString err);
+    void rollback(Message &msg);
 
 public slots:
-    void produce(Message *message);
+    void produce(Message &message);
     void setQueueName(const QString &value);
     void setWorkerNumber(int n);
 
@@ -99,14 +99,14 @@ public:
     iConnectionFactory *getConnectionFactory() const;
 
 signals:
-    void produced(Message *msg);
-    void error(Message *message, QString err);
-    void rollback(Message *message);
+    void produced(Message &msg);
+    void error(Message &message, QString err);
+    void rollback(Message &message);
 
 public slots:
-    void produce(Message *msg);
-    void workerProduced(Message *msg);
-    void getError(Message *message, QString err);
+    void produce(Message &msg);
+    void workerProduced(Message &msg);
+    void getError(Message &message, QString err);
     void setQueueName(const QString &value);
     void setMaxWorkers(int value);
     void setConnectionFactory(iConnectionFactory *value);

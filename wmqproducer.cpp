@@ -34,7 +34,7 @@ void WMQProducerThreaded::setQueueName(const QString &value)
     queueName = value;
 }
 
-void WMQProducerThreaded::produce(Message *msg)
+void WMQProducerThreaded::produce(Message &msg)
 {
     while (true) {
         if (workers.at(nextRoundRobbin())->doSend(msg))
@@ -42,13 +42,13 @@ void WMQProducerThreaded::produce(Message *msg)
     }
 }
 
-void WMQProducerThreaded::workerProduced(Message *msg)
+void WMQProducerThreaded::workerProduced(Message &msg)
 {
-    msg->setHeader("emiter", "WMQProducer");
+    msg.setHeader("emiter", "WMQProducer");
     emit produced(msg);
 }
 
-void WMQProducerThreaded::getError(Message *message, QString err)
+void WMQProducerThreaded::getError(Message &message, QString err)
 {
     qCritical() << "WMQProducer got error while proccesing message: " << &message << ", err: " << err;
     emit rollback(message);
@@ -159,7 +159,7 @@ WMQProducerThreaded::~WMQProducerThreaded()
     }
 }
 
-QByteArray* buildMQRFHeader2(Message *msg)
+QByteArray* buildMQRFHeader2(Message &msg)
 {
     QByteArray* result = new QByteArray();
     if (!result)
@@ -174,7 +174,7 @@ QByteArray* buildMQRFHeader2(Message *msg)
     QString mcdValueString;
     QString usrValueString;
 
-    QHashIterator<QString, QString> headerIterator(msg->getHeaders());
+    QHashIterator<QString, QString> headerIterator(msg.getHeaders());
     while (headerIterator.hasNext()) {
         headerIterator.next();
         QString headerName = headerIterator.key();
@@ -339,7 +339,7 @@ void WMQProducer::setWorkerNumber(int n)
     workerNumber = n;
 }
 
-bool WMQProducer::doSend(Message *msg)
+bool WMQProducer::doSend(Message &msg)
 {
     QReadLocker locker(&lock);
     if (inuse) {
@@ -349,25 +349,25 @@ bool WMQProducer::doSend(Message *msg)
 
     inuse = true;
 
-    msg->setHeader("emiter", "WMQProducerThread");
+    msg.setHeader("emiter", "WMQProducerThread");
     emit got(msg);
 
     return true;
 }
 
-void WMQProducer::produce(Message *message)
+void WMQProducer::produce(Message &message)
 {
     if (!connection)
         connection = connectionFactory->getConnection();
 
     if (!connection) {
         qCritical() << "Can't get connection";
-        message->setHeader("emiter", "WMQProducerThread");
+        message.setHeader("emiter", "WMQProducerThread");
         emit error(message, "can't get connection");
         emit rollback(message);
         return;
     }
-//    qDebug() << "WMQProducerThread::send: " << message.getHeaders().value("FileName") << ", workerNumber:" << workerNumber;
+    //    qDebug() << "WMQProducerThread::send: " << message.getHeaders().value("FileName") << ", workerNumber:" << workerNumber;
 
     ImqMessage msg;
 
@@ -383,8 +383,8 @@ void WMQProducer::produce(Message *message)
         if (queue.reasonCode()) {
             qCritical() << "ImqQueue::open ended with reason code " << (int)queue.reasonCode();
             qCritical() << "ImqQueue::open ended with reason code " << (int)queue.completionCode();
-            message->setHeader("emiter", "WMQProducerThread");
-//            emit error(message, QString("ImqQueue::open error with reason code %1").arg((int)queue.reasonCode()));
+            message.setHeader("emiter", "WMQProducerThread");
+            //            emit error(message, QString("ImqQueue::open error with reason code %1").arg((int)queue.reasonCode()));
             emit rollback(message);
             return;
         }
@@ -403,10 +403,10 @@ void WMQProducer::produce(Message *message)
             msg.setFormat(MQFMT_STRING);
         }
 
-        if(message->getHeaders().contains(MESSAGE_CORRELATION_ID)) {
+        if(message.getHeaders().contains(MESSAGE_CORRELATION_ID)) {
             QByteArray qcid;
             qcid.fill((char)0, MQ_MSG_ID_LENGTH);
-            qcid.replace(0, message->getHeaders().value(MESSAGE_CORRELATION_ID).size(), message->getHeaders().value(MESSAGE_CORRELATION_ID).toLocal8Bit().constData(), message->getHeaders().value(MESSAGE_CORRELATION_ID).size());
+            qcid.replace(0, message.getHeaders().value(MESSAGE_CORRELATION_ID).size(), message.getHeaders().value(MESSAGE_CORRELATION_ID).toLocal8Bit().constData(), message.getHeaders().value(MESSAGE_CORRELATION_ID).size());
 
             ImqBin correlid((void*)qcid.constData(), MQ_MSG_ID_LENGTH);
 
@@ -418,7 +418,7 @@ void WMQProducer::produce(Message *message)
 
         //        qDebug() << "bodyArray size: " << bodyArray->size();
 
-        bodyArray->append(message->getBodyAsByteArray());
+        bodyArray->append(message.getBodyAsByteArray());
 
         msg.setMessageType(MQMT_DATAGRAM);
         msg.setPersistence(MQPER_PERSISTENT);
@@ -428,7 +428,7 @@ void WMQProducer::produce(Message *message)
         if(!queue.put(msg)) {
             qCritical() << "ImqQueue::put ended with reason code " << (int)queue.reasonCode();
             qCritical() << "ImqQueue::put ended with reason code " << (int)queue.completionCode();
-//            emit error(message, QString("ImqQueue::put error with reason code %1").arg((int)queue.reasonCode()));
+            //            emit error(message, QString("ImqQueue::put error with reason code %1").arg((int)queue.reasonCode()));
             emit rollback(message);
             return;
         }
@@ -465,16 +465,16 @@ bool WMQProducerCommiter::initScriptEngine(QScriptEngine &engine)
     return true;
 }
 
-void WMQProducerCommiter::commit(Message *msg)
+void WMQProducerCommiter::commit(Message &msg)
 {
-//    qDebug() << "WMQProducerCommiter::commit : " << msg.getHeaders().value("FileName");
-//    msg.setHeader("emiter", "WMQProducerCommiter");
+    //    qDebug() << "WMQProducerCommiter::commit : " << msg.getHeaders().value("FileName");
+    //    msg.setHeader("emiter", "WMQProducerCommiter");
     emit commited(msg);
 }
 
-void WMQProducerCommiter::rollback(Message *msg)
+void WMQProducerCommiter::rollback(Message &msg)
 {
-//    qDebug() << "WMQProducerCommiter::rollback";
-//    msg.setHeader("emiter", "WMQProducerCommiter");
+    //    qDebug() << "WMQProducerCommiter::rollback";
+    //    msg.setHeader("emiter", "WMQProducerCommiter");
     emit rollbacked(msg);
 }

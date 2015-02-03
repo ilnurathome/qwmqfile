@@ -14,7 +14,7 @@ public:
     ~FileMessage();
 
     void setBody(QFile* file);
-    virtual QByteArray &getBodyAsByteArray();
+    virtual QByteArray getBodyAsByteArray();
     QFile* getFile();
 };
 

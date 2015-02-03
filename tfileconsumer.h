@@ -1,14 +1,13 @@
-#ifndef FILECONSUMER_H
-#define FILECONSUMER_H
+#ifndef TFILECONSUMER_H
+#define TFILECONSUMER_H
 
 #include <QCoreApplication>
 #include <QScriptEngine>
-#include <QSharedPointer>
 
 #include "message.h"
 #include "common.h"
 
-class FileConsumerCommiter : public QObject
+class TFileConsumerCommiter : public QObject
 {
     Q_OBJECT
 
@@ -23,17 +22,16 @@ public:
     QString getArchPath() const;
 
 signals:
-    void commited(QSharedPointer<Message> msg);
-    void rollbacked(QSharedPointer<Message> msg);
-
+    void commited(TMessage<QFile> *msg);
+    void rollbacked(TMessage<QFile> *msg);
 public slots:
-    void commit(QSharedPointer<Message> msg);
-    void rollback(QSharedPointer<Message> msg);
+    void commit(TMessage<QFile> *msg);
+    void rollback(TMessage<QFile> *msg);
     void setArchPath(const QString &value);
     void setArchPathFunc(const STD_FUNCTION<QString ()> &value);
 };
 
-class FileConsumer : public QObject
+class TFileConsumer : public QObject
 {
     Q_OBJECT
 
@@ -53,13 +51,13 @@ class FileConsumer : public QObject
     long commited;
 
     QThread *commiterThread;
-    FileConsumerCommiter *commiter;
+    TFileConsumerCommiter *commiter;
 
     bool isquit;
 
 public:
-    FileConsumer();
-    ~FileConsumer();
+    TFileConsumer();
+    ~TFileConsumer();
     bool valid(const QString& filename);
 
     QString getPath() const;
@@ -76,7 +74,7 @@ public:
     int getBatchSize() const;
 
 signals:
-    void message(QSharedPointer<Message> msg);
+    void message(TMessage<QFile> *msg);
 
 public slots:
     int init();
@@ -84,8 +82,8 @@ public slots:
     void consume();
     void consume(const QString& str);
 
-    void commit(QSharedPointer<Message> msg);
-    void rollback(QSharedPointer<Message> msg);
+    void commit(TMessage<QFile> *msg);
+    void rollback(TMessage<QFile> *msg);
 
     void setBatchSize(int value);
 
@@ -101,4 +99,4 @@ public slots:
     void quit();
 };
 
-#endif // FILECONSUMER_H
+#endif // TFILECONSUMER_H

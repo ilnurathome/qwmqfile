@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core concurrent script
+QT       += core concurrent script network
 
 QT       -= gui
 
@@ -28,7 +28,10 @@ SOURCES += main.cpp \
     wmqconsumer.cpp \
     bytemessage.cpp \
     testmsgprocessor.cpp \
-    fileproducer.cpp
+    fileproducer.cpp \
+    file2bytearrayprocess.cpp \
+    tfileconsumer.cpp \
+    httpproducer.cpp
 
 HEADERS += \
     fileconsumer.h \
@@ -44,7 +47,10 @@ HEADERS += \
     wmqconsumer.h \
     bytemessage.h \
     testmsgprocessor.h \
-    fileproducer.h
+    fileproducer.h \
+    file2bytearrayprocess.h \
+    tfileconsumer.h \
+    httpproducer.h
 
 
 win32:INCLUDEPATH += "C:/Program Files/IBM/WebSphere MQ/tools/cplus/include" \

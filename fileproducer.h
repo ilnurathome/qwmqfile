@@ -17,17 +17,15 @@ public:
 
     static bool initScriptEngine(QScriptEngine &engine);
 
-    bool doSend(Message *msg);
-
 
 signals:
-    void produced(Message *msg);
-    void got(Message *msg);
-    void error(Message *message, QString err);
-    void rollback(Message *msg);
+    void produced(QSharedPointer<Message> msg);
+    void got(QSharedPointer<Message> msg);
+    void error(QSharedPointer<Message> message, QString err);
+    void rollback(QSharedPointer<Message> msg);
 
 public slots:
-    void produce(Message *message);
+    void produce(QSharedPointer<Message> message);
 
     QString getPath() const;
     void setPath(const QString &value);

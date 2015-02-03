@@ -44,12 +44,12 @@ public:
     bool getTransacted() const;
 
 signals:
-    void message(Message *msg);
+    void message(Message &msg);
     void error(QString err);
 
 public slots:
-    void commit(Message *msg);
-    void rollback(Message *msg);
+    void commit(Message &msg);
+    void rollback(Message &msg);
 
     void setQueueName(const QString &value);
     void setConnectionFactory(iConnectionFactory *value);

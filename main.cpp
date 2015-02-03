@@ -10,6 +10,9 @@
 #include "wmqconsumer.h"
 #include "testmsgprocessor.h"
 #include "fileproducer.h"
+#include "file2bytearrayprocess.h"
+#include "tfileconsumer.h"
+#include "httpproducer.h"
 
 #ifndef _WIN32
 #include <csignal>
@@ -62,7 +65,6 @@ QScriptEngine* myEngine;
 int testQS(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    //    qRegisterMetaType<Message>("Message");
 
     QString scriptName = "context.qs";
 
@@ -279,7 +281,144 @@ int test_wmq2wmq(int argc, char *argv[])
     return ret;
 }
 
+
+int test_fileconv_tmpl(int argc, char *argv[])
+{
+    QCoreApplication a(argc, argv);
+
+    TFileConsumer fileConsumer;
+    fileConsumer.setBatchSize(10000);
+    fileConsumer.setPath("/tmp/filewmq/swifts");
+    fileConsumer.setArchPath("/tmp/filewmq/arch");
+    //    consumer.setPath("c:/temp/filewmq/swifts");
+    //    consumer.setArchPath("c:/temp/filewmq/arch");
+    fileConsumer.init();
+
+    QTimer timer;
+    QObject::connect(&timer, SIGNAL(timeout()), &fileConsumer, SLOT(consume()));
+    timer.start(500);
+
+    qDebug() << "Create processor 1";
+
+    TFile2ByteArrayProcess convproc;
+
+
+    // quit signal
+    QObject::connect(&a, SIGNAL(aboutToQuit()), &fileConsumer, SLOT(quit()), Qt::DirectConnection);
+
+    // message signals
+    QObject::connect(&fileConsumer, SIGNAL(message(TMessage<QFile>*)), &convproc, SLOT(process(TMessage<QFile>*)));
+
+    QObject::connect(&convproc, SIGNAL(commited(TMessage<QFile>*)), fileConsumer.getCommiter(), SLOT(commit(TMessage<QFile>*)), Qt::QueuedConnection);
+    QObject::connect(&convproc, SIGNAL(rollbacked(TMessage<QFile>*)), fileConsumer.getCommiter(), SLOT(rollback(TMessage<QFile>*)), Qt::QueuedConnection);
+
+#ifndef _WIN23
+    registerCleanExit();
+#endif
+    int ret = a.exec();
+
+    return ret;
+}
+
+int test_fileconv(int argc, char *argv[])
+{
+    QCoreApplication a(argc, argv);
+
+    FileConsumer fileConsumer;
+    fileConsumer.setBatchSize(10000);
+    fileConsumer.setPath("/tmp/filewmq/swifts");
+    fileConsumer.setArchPath("/tmp/filewmq/arch");
+    //    consumer.setPath("c:/temp/filewmq/swifts");
+    //    consumer.setArchPath("c:/temp/filewmq/arch");
+    fileConsumer.init();
+
+    QTimer timer;
+    QObject::connect(&timer, SIGNAL(timeout()), &fileConsumer, SLOT(consume()));
+    timer.start(500);
+
+    HTTPProducer httpproducer;
+
+    qDebug() << "Create processor 1";
+
+    File2ByteArrayProcess convproc;
+
+
+    // quit signal
+    QObject::connect(&a, SIGNAL(aboutToQuit()), &fileConsumer, SLOT(quit()), Qt::DirectConnection);
+
+    // message signals
+    QObject::connect(&fileConsumer, SIGNAL(message(Message*)), &convproc, SLOT(process(Message*)));
+
+    QObject::connect(&convproc, SIGNAL(proceed(Message*)), &httpproducer, SLOT(produce(Message*)));
+
+    QObject::connect(&convproc, SIGNAL(commited(Message*)), fileConsumer.getCommiter(), SLOT(commit(Message*)), Qt::QueuedConnection);
+    QObject::connect(&convproc, SIGNAL(rollbacked(Message*)), fileConsumer.getCommiter(), SLOT(rollback(Message*)), Qt::QueuedConnection);
+
+#ifndef _WIN23
+    registerCleanExit();
+#endif
+    int ret = a.exec();
+
+    return ret;
+}
+
+int test_filehttpfile(int argc, char *argv[])
+{
+    QCoreApplication a(argc, argv);
+
+    FileConsumer fileConsumer;
+    fileConsumer.setBatchSize(10000);
+    fileConsumer.setPath("/tmp/filewmq/swifts");
+    fileConsumer.setArchPath("/tmp/filewmq/arch");
+    //    consumer.setPath("c:/temp/filewmq/swifts");
+    //    consumer.setArchPath("c:/temp/filewmq/arch");
+    fileConsumer.init();
+
+    QTimer timer;
+    QObject::connect(&timer, SIGNAL(timeout()), &fileConsumer, SLOT(consume()));
+    timer.start(500);
+
+    HTTPProducer httpproducer;
+
+    qDebug() << "Create processor 1";
+
+    File2ByteArrayProcess convproc;
+
+    FileProducer fileProducer;
+    fileProducer.setPath("/tmp/filewmq/inbox");
+
+
+
+    // quit signal
+    QObject::connect(&a, SIGNAL(aboutToQuit()), &fileConsumer, SLOT(quit()), Qt::DirectConnection);
+
+    // message signals
+    QObject::connect(&fileConsumer, SIGNAL(message(QSharedPointer<Message>)), &convproc, SLOT(process(QSharedPointer<Message>)));
+
+    QObject::connect(&convproc, SIGNAL(proceed(QSharedPointer<Message>)), &httpproducer, SLOT(produce(QSharedPointer<Message>)));
+
+    QObject::connect(&convproc, SIGNAL(commited(QSharedPointer<Message>)), fileConsumer.getCommiter(), SLOT(commit(QSharedPointer<Message>)), Qt::QueuedConnection);
+    QObject::connect(&convproc, SIGNAL(rollbacked(QSharedPointer<Message>)), fileConsumer.getCommiter(), SLOT(rollback(QSharedPointer<Message>)), Qt::QueuedConnection);
+
+
+    QObject::connect(&httpproducer, SIGNAL(produced(QSharedPointer<Message>)), &fileProducer, SLOT(produce(QSharedPointer<Message>)), Qt::DirectConnection);
+    //    QObject::connect(&httpproducer, SIGNAL(commited(Message)), &convproc, SLOT(commit(Message)), Qt::DirectConnection);
+
+    //    QObject::connect(&fileProducer, SIGNAL(produced(Message*)), &consumer2file, SLOT(commit(Message*)), Qt::DirectConnection);
+    //    QObject::connect(&fileProducer, SIGNAL(rollback(Message*)), &consumer2file, SLOT(rollback(Message*)), Qt::DirectConnection);
+
+#ifndef _WIN23
+    registerCleanExit();
+#endif
+    int ret = a.exec();
+
+    return ret;
+}
+
 int main(int argc, char *argv[])
 {
-    return test_wmq2wmq(argc, argv);
+    qRegisterMetaType<Message>("Message");
+    //    return test_wmq2wmq(argc, argv);
+    //        return test_fileconv(argc, argv);
+    return test_filehttpfile(argc, argv);
 }

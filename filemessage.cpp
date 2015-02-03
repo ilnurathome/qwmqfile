@@ -20,9 +20,9 @@ void FileMessage::setBody(QFile* value)
     f = value;
 }
 
-QByteArray &FileMessage::getBodyAsByteArray()
+QByteArray FileMessage::getBodyAsByteArray()
 {
-//    qDebug() << __PRETTY_FUNCTION__;
+    //    qDebug() << __PRETTY_FUNCTION__;
     if (f && ba.size() == 0) {
         if(f->open(QIODevice::ReadOnly)) {
             ba.append(f->readAll());

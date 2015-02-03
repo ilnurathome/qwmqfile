@@ -1,14 +1,9 @@
 #include "message.h"
 #include <QDebug>
 
-QObject* Message::getBody()
+QByteArray Message::getBodyAsByteArray()
 {
-    return msgbody;
-}
-
-void Message::setBody(QObject* value)
-{
-    msgbody = value;
+    return body.toByteArray();
 }
 
 int Message::setHeader(QString name, QString value)
@@ -54,14 +49,36 @@ void Message::setMessageId(const QByteArray &value)
     messageId = value;
 }
 
+
+QVariant Message::getBody() const
+{
+    return body;
+}
+
+QVariant &Message::getBodyRef()
+{
+    return body;
+}
+
+void Message::setBody(const QVariant &value)
+{
+    body = value;
+}
+
+Message::Message(QVariant value)
+{
+    body = value;
+}
+
 Message::Message(Message* msg)
 {
+    qDebug() << __PRETTY_FUNCTION__ << ": " << msg;
     if(msg)
-        msgbody = msg->getBody();
+        body = msg->getBody();
     //    qDebug() << __PRETTY_FUNCTION__;
 }
 
 Message::~Message()
 {
-//    qDebug() << __PRETTY_FUNCTION__;
+    qDebug() << __PRETTY_FUNCTION__;
 }
