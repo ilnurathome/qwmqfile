@@ -9,6 +9,10 @@
 
 #include "iconnection.h"
 
+/**
+ * @brief The WMQConnection class
+ * Connection to WMQ
+ */
 class WMQConnection : public iConnection
 {
     ImqQueueManager *mgr;

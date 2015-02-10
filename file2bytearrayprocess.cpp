@@ -1,5 +1,6 @@
 #include "file2bytearrayprocess.h"
 #include <QDebug>
+#include <typeinfo>
 
 File2ByteArrayProcess::File2ByteArrayProcess(QObject *parent) : QObject(parent), requestReply(true)
 {
@@ -8,6 +9,19 @@ File2ByteArrayProcess::File2ByteArrayProcess(QObject *parent) : QObject(parent),
 
 void File2ByteArrayProcess::process(PMessage message)
 {
+    try {
+        if (typeid(*message.data()) != typeid(FileMessage)) {
+            qWarning() << __PRETTY_FUNCTION__ << ": message is not FileMessage it's " << typeid(*message.data()).name() << "; must be " << typeid(FileMessage).name();
+            emit error(message, "message is not FileMessage");
+            emit rollback(message);
+            return;
+        }
+    }
+    catch(...)
+    {
+
+    }
+
     FileMessage *msg = (FileMessage*) message.data();
 
     QByteArray b;

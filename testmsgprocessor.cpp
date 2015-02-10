@@ -6,23 +6,23 @@ TestMsgProcessor::TestMsgProcessor(QObject *parent) :
 {
 }
 
-void TestMsgProcessor::process(Message *msg)
+void TestMsgProcessor::process(PMessage msg)
 {
-    if(msg) {
-        if(msg->getHeaders().contains("FileName")) {
-            if(msg->getHeaders().value("FileName") == "exit") {
+    if(msg.data()) {
+        if(msg.data()->getHeaders().contains("FileName")) {
+            if(msg.data()->getHeaders().value("FileName") == "exit") {
                 QCoreApplication::exit(0);
                 return;
             }
         }
 
-        msg->setHeader("test1", "test1");
-        msg->setHeader("test2", "test2");
-        msg->setHeader("test3", "test3");
-        msg->setHeader("test4", "test4");
-        msg->setHeader("test5", "test5");
-        msg->setHeader("test6", "test6");
-        msg->setHeader(MESSAGE_CORRELATION_ID, "test");
+        msg.data()->setHeader("test1", "test1");
+        msg.data()->setHeader("test2", "test2");
+        msg.data()->setHeader("test3", "test3");
+        msg.data()->setHeader("test4", "test4");
+        msg.data()->setHeader("test5", "test5");
+        msg.data()->setHeader("test6", "test6");
+        msg.data()->setHeader(MESSAGE_CORRELATION_ID, "test");
     }
 
     emit proceed(msg);

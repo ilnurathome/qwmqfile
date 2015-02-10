@@ -3,12 +3,13 @@
 
 ByteMessage::ByteMessage()
 {
-    qDebug() << __PRETTY_FUNCTION__;
+    claz = "ByteMessage";
+//    qDebug() << __PRETTY_FUNCTION__;
 }
 
 ByteMessage::~ByteMessage()
 {
-    qDebug() << __PRETTY_FUNCTION__;
+//    qDebug() << __PRETTY_FUNCTION__;
     b.clear();
 }
 

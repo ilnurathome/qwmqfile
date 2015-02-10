@@ -36,7 +36,7 @@ void HTTPProducer::produce(PMessage message)
     req.setHeader(QNetworkRequest::ContentTypeHeader, QString("text/xml;charset=utf-8"));
     req.setUrl((QUrl( QString("http://cbr.ru/secinfo/secinfo.asmx") ) ));
 
-    qDebug() << "req.header:" << req.header(QNetworkRequest::ContentTypeHeader);
+//    qDebug() << "req.header:" << req.header(QNetworkRequest::ContentTypeHeader);
 
     QByteArray data = message.data()->getBodyAsByteArray();
     //        QByteArray data = QString("<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:web=\"http://web.cbr.ru/\"><soapenv:Header/><soapenv:Body><web:IDRepo><web:OnDate>2015-02-03</web:OnDate></web:IDRepo></soapenv:Body></soapenv:Envelope>").toAscii();
@@ -48,7 +48,7 @@ void HTTPProducer::produce(PMessage message)
 
     if (reply->error() == QNetworkReply::NoError) {
         //success
-        //            qDebug() << "Success" << reply->readAll();
+                    qDebug() << "Success" << reply->readAll();
 
         Message *retmsg = new Message(reply->readAll());
 
@@ -59,9 +59,9 @@ void HTTPProducer::produce(PMessage message)
         delete reply;
     } else {
         //failure
-        qDebug() << "Failure" <<reply->errorString();
-        qDebug() << "reply.header:" << reply->header(QNetworkRequest::ContentTypeHeader);
-        qDebug() << reply->readAll();
+//        qDebug() << "Failure" <<reply->errorString();
+//        qDebug() << "reply.header:" << reply->header(QNetworkRequest::ContentTypeHeader);
+//        qDebug() << reply->readAll();
 
         // NB! temp
         emit rollbacked(message);

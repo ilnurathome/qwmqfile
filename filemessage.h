@@ -5,6 +5,10 @@
 #include <QByteArray>
 #include "message.h"
 
+/**
+ * @brief The FileMessage class
+ * QFile Message
+ */
 class FileMessage : public Message
 {
     QFile* f;

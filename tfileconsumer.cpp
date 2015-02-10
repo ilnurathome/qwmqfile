@@ -88,15 +88,15 @@ void TFileConsumer::setArchPathFunc(const STD_FUNCTION<QString ()> &value)
 
 void TFileConsumer::setArchPathFuncGlobal(const QString &value)
 {
-    qDebug() << __PRETTY_FUNCTION__;
+//    qDebug() << __PRETTY_FUNCTION__;
 
     archPathFuncScript = myEngine->globalObject().property(value);
     //    archPathFunc = std::bind1st( std::mem_fun(&FileConsumer::callArchPathFuncGlobalScript), this);
 
     archPathFunc = boost::bind(&TFileConsumer::callArchPathFuncGlobalScript, this);
 
-    qDebug() << __PRETTY_FUNCTION__<< ": " << archPathFuncScript.call(QScriptValue()).toString();
-    qDebug() << __PRETTY_FUNCTION__<< ": " << archPathFunc();
+//    qDebug() << __PRETTY_FUNCTION__<< ": " << archPathFuncScript.call(QScriptValue()).toString();
+//    qDebug() << __PRETTY_FUNCTION__<< ": " << archPathFunc();
 }
 
 QObject *TFileConsumer::getCommiter()
@@ -111,7 +111,7 @@ void TFileConsumer::moveToThread(QObject *thread)
 
 void TFileConsumer::quit()
 {
-    qDebug() << __PRETTY_FUNCTION__ <<":quit";
+//    qDebug() << __PRETTY_FUNCTION__ <<":quit";
     isquit = true;
 }
 
@@ -286,7 +286,7 @@ void TFileConsumerCommiter::commit(TMessage<QFile> *msg)
         QDir dir(newDirPath);
         if (!dir.exists()) {
             dir.mkpath(".");
-            qDebug() << __PRETTY_FUNCTION__<< ":Create new dir : " << dir.absolutePath();
+//            qDebug() << __PRETTY_FUNCTION__<< ":Create new dir : " << dir.absolutePath();
         }
 
         if (QFile::exists(newDirPath + "/" + filename)) {
@@ -294,11 +294,11 @@ void TFileConsumerCommiter::commit(TMessage<QFile> *msg)
         }
 
         if (!file.rename(newDirPath + "/" + filename)){
-            qDebug() << __PRETTY_FUNCTION__<< ":Rename fail: " << newDirPath + "/" + filename << " : " << file.error() << " : " << file.errorString();
+//            qDebug() << __PRETTY_FUNCTION__<< ":Rename fail: " << newDirPath + "/" + filename << " : " << file.error() << " : " << file.errorString();
         }
         //            msg.setBody(NULL);
     } else {
-        qDebug() << __PRETTY_FUNCTION__<< ":Msg body cast fail";
+//        qDebug() << __PRETTY_FUNCTION__<< ":Msg body cast fail";
     }
 
     emit commited(msg);

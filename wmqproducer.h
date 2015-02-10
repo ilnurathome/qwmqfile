@@ -1,6 +1,7 @@
 #ifndef WMQPRODUCER_H
 #define WMQPRODUCER_H
 
+#include <QSemaphore>
 #include <QCoreApplication>
 #include <QScriptEngine>
 #include "wmqconnection.h"
@@ -39,6 +40,8 @@ class WMQProducer : public QObject
 
     QReadWriteLock lock;
 
+    QSemaphore *semaphore;
+
 public:
     WMQProducer();
     WMQProducer(iConnectionFactory* _connectionFactory);
@@ -47,10 +50,14 @@ public:
     static bool initScriptEngine(QScriptEngine &engine);
 
     bool doSend(PMessage msg);
+    bool process(PMessage msg);
 
     QString getQueueName() const;
 
     iConnectionFactory *getConnectionFactory() const;
+
+    QSemaphore *getSemaphore() const;
+    void setSemaphore(QSemaphore *value);
 
 signals:
     void produced(PMessage msg);
@@ -66,7 +73,16 @@ public slots:
     void setConnectionFactory(iConnectionFactory *value);
 };
 
-
+/**
+ * @brief The WMQProducerThreaded class
+ * Producer in multithreaded model auto create several threads and move object instance of WMQProducer to.
+ *
+ *                                       +-<<QueuedConn>>- WMQProducer --+
+ *                                       |                               |
+ * one consumer -- WMQProducerThreaded --+-<<QueuedConn>>- WMQProducer --+-<<QueuedConn>>- WMQProducerCommiter
+ *                                       |                               |
+ *                                       +-<<QueuedConn>>- WMQProducer --+
+ */
 class WMQProducerThreaded : public QObject
 {
     Q_OBJECT
@@ -83,6 +99,8 @@ class WMQProducerThreaded : public QObject
     int maxWorkers;
 
     int workerCounter;
+
+    QSemaphore *semaphore;
 
 public:
     WMQProducerThreaded(iConnectionFactory* connectionFactory=0);

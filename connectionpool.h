@@ -10,10 +10,15 @@
 
 enum ConnectionStates {OCCUPIED, AVAILABLE};
 
+/**
+ * @brief The ConnectionPool class
+ * NB! Must releaseConnection after use when not required
+ */
 class ConnectionPool : public QObject, iConnectionFactory
 {
     Q_OBJECT
 
+    // For multithreading model
     QMutex mutex;
 
     class ConnectionState {
@@ -22,8 +27,11 @@ class ConnectionPool : public QObject, iConnectionFactory
         ConnectionStates state;
     };
 
+    // FIXME change iConnection* to QSharedPointer<iConnection>
     QHash<iConnection*, ConnectionState> connections;
     int maxConnections;
+
+    // FIXME
     iConnectionFactory* connectionFactory;
 
     iConnection* getNewConnection();

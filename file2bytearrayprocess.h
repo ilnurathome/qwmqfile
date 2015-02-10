@@ -9,6 +9,10 @@
 #include "filemessage.h"
 #include "bytemessage.h"
 
+/**
+ * @brief The File2ByteArrayProcess class
+ * Read file to QByteArray
+ */
 class File2ByteArrayProcess : public QObject
 {
     Q_OBJECT

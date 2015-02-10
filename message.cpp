@@ -65,14 +65,14 @@ void Message::setBody(const QVariant &value)
     body = value;
 }
 
-Message::Message(QVariant value)
+Message::Message(QVariant value) : claz("Message")
 {
     body = value;
 }
 
 Message::Message(Message* msg)
 {
-    qDebug() << __PRETTY_FUNCTION__ << ": " << msg;
+//    qDebug() << __PRETTY_FUNCTION__ << ": " << msg;
     if(msg)
         body = msg->getBody();
     //    qDebug() << __PRETTY_FUNCTION__;
@@ -80,5 +80,5 @@ Message::Message(Message* msg)
 
 Message::~Message()
 {
-    qDebug() << __PRETTY_FUNCTION__;
+//    qDebug() << __PRETTY_FUNCTION__;
 }

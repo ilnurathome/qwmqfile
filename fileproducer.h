@@ -7,6 +7,12 @@
 #include <QObject>
 #include "message.h"
 
+/**
+ * @brief The FileProducer class
+ * Write message to file
+ * header FileName
+ * path must be set before use
+ */
 class FileProducer : public QObject
 {
     Q_OBJECT

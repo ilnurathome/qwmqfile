@@ -36,7 +36,7 @@ void FileProducer::produce(PMessage m)
     QDir dir(path);
     if (!dir.exists()) {
         dir.mkpath(".");
-        qDebug() << __PRETTY_FUNCTION__<< ":Create new dir : " << dir.absolutePath();
+//        qDebug() << __PRETTY_FUNCTION__<< ":Create new dir : " << dir.absolutePath();
     }
 
     if (QFile::exists(fullPath)) {

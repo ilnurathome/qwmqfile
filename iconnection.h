@@ -1,6 +1,9 @@
 #ifndef ICONNECTION_H
 #define ICONNECTION_H
 
+/**
+ * @brief The iConnection interface class
+ */
 class iConnection
 {
 public:

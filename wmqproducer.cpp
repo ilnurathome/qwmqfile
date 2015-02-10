@@ -36,10 +36,17 @@ void WMQProducerThreaded::setQueueName(const QString &value)
 
 void WMQProducerThreaded::produce(PMessage  msg)
 {
+//    QTime myTimer;
+//    myTimer.start();
+    if (semaphore) semaphore->acquire();
+//    qDebug() << __PRETTY_FUNCTION__ << ": semaphore acquire elapsed" << myTimer.elapsed();
+
     while (true) {
         if (workers.at(nextRoundRobbin())->doSend(msg))
             break;
     }
+
+//    if(semaphore) semaphore->release();
 }
 
 void WMQProducerThreaded::workerProduced(PMessage  msg)
@@ -66,6 +73,12 @@ int WMQProducerThreaded::init()
 
     commiter->moveToThread(commiterThread);
 
+    semaphore = new QSemaphore(maxWorkers);
+    if (!semaphore) {
+        qCritical() << __PRETTY_FUNCTION__ << ": can't create semaphore";
+        return -1;
+    }
+
     for (int i=0; i<maxWorkers; i++) {
         QThread* thread = new QThread();
         if (!thread) {
@@ -82,6 +95,7 @@ int WMQProducerThreaded::init()
 
         worker->setWorkerNumber(i);
         worker->setQueueName(queueName);
+        worker->setSemaphore(semaphore);
         worker->moveToThread(thread);
 
         workers.append(worker);
@@ -123,7 +137,7 @@ void WMQProducerThreaded::setConnectionFactory(iConnectionFactory *value)
     connectionFactory = value;
 }
 
-WMQProducerThreaded::WMQProducerThreaded(iConnectionFactory* connectionFactory) : commiterThread(NULL), workerCounter(0)
+WMQProducerThreaded::WMQProducerThreaded(iConnectionFactory* connectionFactory) : commiterThread(NULL), workerCounter(0), semaphore(NULL)
 {
     this->connectionFactory = connectionFactory;
     maxWorkers = 4;
@@ -157,6 +171,10 @@ WMQProducerThreaded::~WMQProducerThreaded()
 
     if (commiter) {
         delete commiter;
+    }
+
+    if(semaphore) {
+        delete semaphore;
     }
 }
 
@@ -306,13 +324,23 @@ void WMQProducer::setConnectionFactory(iConnectionFactory *value)
     connectionFactory = value;
 }
 
-WMQProducer::WMQProducer() : connectionFactory(NULL), connection(NULL), inuse(false)
+
+QSemaphore *WMQProducer::getSemaphore() const
+{
+    return semaphore;
+}
+
+void WMQProducer::setSemaphore(QSemaphore *value)
+{
+    semaphore = value;
+}
+WMQProducer::WMQProducer() : connectionFactory(NULL), connection(NULL), inuse(false), semaphore(NULL)
 {
     QObject::connect(this, SIGNAL(got(PMessage)), this, SLOT(produce(PMessage)), Qt::QueuedConnection);
     qDebug() << __PRETTY_FUNCTION__;
 }
 
-WMQProducer::WMQProducer(iConnectionFactory *_connectionFactory) : connectionFactory(_connectionFactory), connection(NULL), inuse(false)
+WMQProducer::WMQProducer(iConnectionFactory *_connectionFactory) : connectionFactory(_connectionFactory), connection(NULL), inuse(false), semaphore(NULL)
 {
     QObject::connect(this, SIGNAL(got(PMessage)), this, SLOT(produce(PMessage)), Qt::QueuedConnection);
     qDebug() << __PRETTY_FUNCTION__;
@@ -340,15 +368,24 @@ void WMQProducer::setWorkerNumber(int n)
     workerNumber = n;
 }
 
+bool WMQProducer::process(PMessage msg)
+{
+    doSend(msg);
+}
+
 bool WMQProducer::doSend(PMessage msg)
 {
     QReadLocker locker(&lock);
     if (inuse) {
-        //        qDebug() << "WMQProducerThread " << workerNumber << " in use.";
+        //        qDebug() << "WMQProducer: " << workerNumber << " in use.";
         return false;
     }
 
+    qDebug() << "WMQProducer: " << workerNumber;
+
     inuse = true;
+
+//    if(semaphore) semaphore->acquire();
 
     if(msg.data())
         msg.data()->setHeader("emiter", "WMQProducerThread");
@@ -363,6 +400,8 @@ void WMQProducer::produce(PMessage message)
         qWarning() << "Message is NULL";
         emit error(message, "can't get connection");
         emit rollback(message);
+        if(semaphore) semaphore->release();
+        inuse = false;
         return;
     }
 
@@ -374,6 +413,8 @@ void WMQProducer::produce(PMessage message)
         message.data()->setHeader("emiter", "WMQProducerThread");
         emit error(message, "can't get connection");
         emit rollback(message);
+        if(semaphore) semaphore->release();
+        inuse = false;
         return;
     }
     //    qDebug() << "WMQProducerThread::send: " << message.getHeaders().value("FileName") << ", workerNumber:" << workerNumber;
@@ -395,6 +436,8 @@ void WMQProducer::produce(PMessage message)
             message.data()->setHeader("emiter", "WMQProducerThread");
             //            emit error(message, QString("ImqQueue::open error with reason code %1").arg((int)queue.reasonCode()));
             emit rollback(message);
+            if(semaphore) semaphore->release();
+            inuse = false;
             return;
         }
     }
@@ -439,6 +482,8 @@ void WMQProducer::produce(PMessage message)
             qCritical() << "ImqQueue::put ended with reason code " << (int)queue.completionCode();
             //            emit error(message, QString("ImqQueue::put error with reason code %1").arg((int)queue.reasonCode()));
             emit rollback(message);
+            if(semaphore) semaphore->release();
+            inuse = false;
             return;
         }
 
@@ -451,12 +496,15 @@ void WMQProducer::produce(PMessage message)
     } else {
         emit error(message, QString("bodyArray is NULL"));
         emit rollback(message);
+        if(semaphore) semaphore->release();
+        inuse = false;
         return;
     }
 
     queue.close();
 
     emit produced(message);
+    if(semaphore) semaphore->release();
     inuse = false;
 }
 

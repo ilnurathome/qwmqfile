@@ -4,11 +4,12 @@
 FileMessage::FileMessage(Message *parent) :
     Message(parent), f(NULL)
 {
+    claz = "FileMessage";
 }
 
 FileMessage::~FileMessage()
 {
-    qDebug() << __PRETTY_FUNCTION__<< ":delete FileMessage: " << this;
+//    qDebug() << __PRETTY_FUNCTION__<< ":delete FileMessage: " << this;
     if(f) {
         if(f->isOpen()) f->close();
         delete f;

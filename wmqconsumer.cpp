@@ -12,7 +12,7 @@ QString WMQConsumer::getQueueName() const
 
 void WMQConsumer::run()
 {
-    qDebug() << __PRETTY_FUNCTION__;
+//    qDebug() << __PRETTY_FUNCTION__;
     if (!connection)
         connection = connectionFactory->getConnection();
 
@@ -22,10 +22,10 @@ void WMQConsumer::run()
         return;
     }
 
-    qDebug() << __PRETTY_FUNCTION__ << ": connection got";
+//    qDebug() << __PRETTY_FUNCTION__ << ": connection got";
 
     if (!queue.openStatus()) {
-        qDebug() << __PRETTY_FUNCTION__ << ": queue try to open";
+//        qDebug() << __PRETTY_FUNCTION__ << ": queue try to open";
         queue.setConnectionReference(((WMQConnection*) connection)->getImqQueueManager());
         queue.setName(queueName.toStdString().c_str());
         queue.setOpenOptions(MQOO_INPUT_AS_Q_DEF | MQOO_FAIL_IF_QUIESCING);
@@ -39,7 +39,7 @@ void WMQConsumer::run()
         }
     }
 
-    qDebug() << __PRETTY_FUNCTION__ << ": queue opened";
+//    qDebug() << __PRETTY_FUNCTION__ << ": queue opened";
 
     isquit = false;
 
@@ -60,9 +60,9 @@ void WMQConsumer::run()
             char *pszDataPointer = msg.dataPointer();
             size_t dataLength = msg.dataLength();
 
-            ByteMessage newmsg;
+            Message *newmsg = new Message(QByteArray());
 
-            MQLONG hsize = parseMQRFHeader2(pszDataPointer, dataLength, newmsg.getHeaders());
+            MQLONG hsize = parseMQRFHeader2(pszDataPointer, dataLength, newmsg->getHeaders());
 
             /*
              * hsize checks
@@ -74,23 +74,18 @@ void WMQConsumer::run()
             }
 
             // copy data
-            //            QByteArray msgData;
-            //            msgData.append(pszDataPointer  + hsize, dataLength - hsize);
-            //            qDebug() << msgData;
-            //            QByteArray msgData = QByteArray::fromRawData(pszDataPointer  + hsize, dataLength - hsize);
-            //newmsg->setBody(msgData);
-            newmsg.getBodyAsByteArray().append(pszDataPointer  + hsize, dataLength - hsize);
+            newmsg->getBodyRef() = QByteArray(pszDataPointer  + hsize, dataLength - hsize);
 
             // set message id
             QByteArray newmsgid;
             newmsgid.append((char*)msg.messageId().dataPointer(), msg.messageId().dataLength());
 
-            newmsg.setMessageId(newmsgid);
+            newmsg->setMessageId(newmsgid);
 
             if(msg.correlationId().dataLength() > 0) {
                 QByteArray correlid;
                 correlid.append((char*)msg.correlationId().dataPointer(), msg.correlationId().dataLength());
-                newmsg.setHeader(MESSAGE_CORRELATION_ID, QString(correlid));
+                newmsg->setHeader(MESSAGE_CORRELATION_ID, QString(correlid));
             }
 
             //            qDebug() << newmsg->getBodyAsByteArray() << newmsg->getBodyAsByteArray()->data();
@@ -105,13 +100,13 @@ void WMQConsumer::run()
             //            }
 
             msgConsumed++;
-            newmsg.setHeader("consumerCounter", QString::number(msgConsumed));
-            qDebug() << __PRETTY_FUNCTION__ << ": nConsumer=" << nConsumer << "; msgConsumed=" << msgConsumed << "; msgCommited=" << msgCommited << "; msgRollbacked=" << msgRollbacked << "; balance=" << msgConsumed-msgCommited-msgRollbacked;
+            newmsg->setHeader("consumerCounter", QString::number(msgConsumed));
+//            qDebug() << __PRETTY_FUNCTION__ << ": nConsumer=" << nConsumer << "; msgConsumed=" << msgConsumed << "; msgCommited=" << msgCommited << "; msgRollbacked=" << msgRollbacked << "; balance=" << msgConsumed-msgCommited-msgRollbacked;
 
-            emit message(newmsg);
+            emit message(PMessage(newmsg));
         }
     }
-    qDebug() << __PRETTY_FUNCTION__ <<":finish";
+//    qDebug() << __PRETTY_FUNCTION__ <<":finish";
 }
 
 void WMQConsumer::setQueueName(const QString &value)
@@ -126,7 +121,7 @@ int WMQConsumer::init()
 
 void WMQConsumer::quit()
 {
-    qDebug() << __PRETTY_FUNCTION__ <<":quit";
+//    qDebug() << __PRETTY_FUNCTION__ <<":quit";
     isquit = true;
 }
 
@@ -135,7 +130,7 @@ iConnectionFactory *WMQConsumer::getConnectionFactory() const
     return connectionFactory;
 }
 
-void WMQConsumer::commit(Message &msg)
+void WMQConsumer::commit(PMessage msg)
 {
     if (transacted) {
         if(!queue.connectionReference()->commit()) {
@@ -147,7 +142,7 @@ void WMQConsumer::commit(Message &msg)
     msgCommited++;
 }
 
-void WMQConsumer::rollback(Message &msg)
+void WMQConsumer::rollback(PMessage msg)
 {
     if (transacted) {
         if(!queue.connectionReference()->backout()) {
@@ -189,12 +184,12 @@ void WMQConsumer::setTransacted(bool value)
 WMQConsumer::WMQConsumer(QObject *parent) :
     QObject(parent), connectionFactory(NULL), connection(NULL), msgConsumed(0), msgCommited(0), msgRollbacked(0), transacted(false)
 {
-    qDebug() << __PRETTY_FUNCTION__;
+//    qDebug() << __PRETTY_FUNCTION__;
 }
 
 WMQConsumer::~WMQConsumer()
 {
-    qDebug() << __PRETTY_FUNCTION__;
+//    qDebug() << __PRETTY_FUNCTION__;
 }
 
 

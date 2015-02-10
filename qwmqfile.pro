@@ -31,7 +31,11 @@ SOURCES += main.cpp \
     fileproducer.cpp \
     file2bytearrayprocess.cpp \
     tfileconsumer.cpp \
-    httpproducer.cpp
+    httpproducer.cpp \
+    rabbitmqproducer.cpp \
+    rabbitmqconnection.cpp \
+    rabbitmqconsumer.cpp \
+    workerpool.cpp
 
 HEADERS += \
     fileconsumer.h \
@@ -50,7 +54,11 @@ HEADERS += \
     fileproducer.h \
     file2bytearrayprocess.h \
     tfileconsumer.h \
-    httpproducer.h
+    httpproducer.h \
+    rabbitmqproducer.h \
+    rabbitmqconnection.h \
+    rabbitmqconsumer.h \
+    workerpool.h
 
 
 win32:INCLUDEPATH += "C:/Program Files/IBM/WebSphere MQ/tools/cplus/include" \
@@ -66,7 +74,8 @@ unix:LIBS += /opt/mqm/lib64/libmqic_r.so \
 /opt/mqm/lib64/libmqecs_r.so \
 /opt/mqm/lib64/libmqm_r.so \
 /opt/mqm/lib64/4.1/libimqb23gl_r.so \
-/opt/mqm/lib64/4.1/libimqc23gl_r.so
+/opt/mqm/lib64/4.1/libimqc23gl_r.so \
+-lrabbitmq
 
 OTHER_FILES += \
     context.qs

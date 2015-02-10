@@ -90,15 +90,15 @@ void FileConsumer::setArchPathFunc(const STD_FUNCTION<QString ()> &value)
 
 void FileConsumer::setArchPathFuncGlobal(const QString &value)
 {
-    qDebug() << __PRETTY_FUNCTION__;
+//    qDebug() << __PRETTY_FUNCTION__;
 
     archPathFuncScript = myEngine->globalObject().property(value);
     //    archPathFunc = std::bind1st( std::mem_fun(&FileConsumer::callArchPathFuncGlobalScript), this);
 
     archPathFunc = boost::bind(&FileConsumer::callArchPathFuncGlobalScript, this);
 
-    qDebug() << __PRETTY_FUNCTION__<< ": " << archPathFuncScript.call(QScriptValue()).toString();
-    qDebug() << __PRETTY_FUNCTION__<< ": " << archPathFunc();
+//    qDebug() << __PRETTY_FUNCTION__<< ": " << archPathFuncScript.call(QScriptValue()).toString();
+//    qDebug() << __PRETTY_FUNCTION__<< ": " << archPathFunc();
 }
 
 QObject *FileConsumer::getCommiter()
@@ -113,7 +113,7 @@ void FileConsumer::moveToThread(QObject *thread)
 
 void FileConsumer::quit()
 {
-    qDebug() << __PRETTY_FUNCTION__ <<":quit";
+//    qDebug() << __PRETTY_FUNCTION__ <<":quit";
     isquit = true;
 }
 
@@ -121,6 +121,12 @@ void FileConsumer::quit()
 int FileConsumer::getBatchSize() const
 {
     return batchSize;
+}
+
+void FileConsumer::messageDeleter(Message *msg)
+{
+//    qDebug() << __PRETTY_FUNCTION__;
+    delete msg;
 }
 
 void FileConsumer::setBatchSize(int value)
@@ -178,7 +184,7 @@ void FileConsumer::consume(const QString &path)
     processing = true;
     //    qDebug() << path;
 
-    QDirIterator it(path);
+    QDirIterator it(path, QDir::Files);
 
     //    long counter=0;
 
@@ -199,7 +205,7 @@ void FileConsumer::consume(const QString &path)
         msg->setBody(new QFile(filepath));
         procceded++;
 
-        emit message(PMessage((Message*)msg));
+        emit message(PMessage((Message*)msg, &FileConsumer::messageDeleter));
     }
     processing = false;
     if (procceded == 0 || commited == procceded)
@@ -215,7 +221,7 @@ void FileConsumer::commit(PMessage msg)
     if (!processing) {
         //        qDebug() << "Wait for commit all : " << procceded << " : " << commited;
         if (commited == procceded) {
-            qDebug() << __PRETTY_FUNCTION__<< ":Procced : " << procceded << " finish: " << commited;
+//            qDebug() << __PRETTY_FUNCTION__ << ":Procced : " << procceded << " finish: " << commited;
             consuming = false;
         }
     }
@@ -227,12 +233,12 @@ void FileConsumer::rollback(PMessage message)
 {
     Message *msg = message.data();
     commited++;
-    qDebug() << __PRETTY_FUNCTION__<< ":Rollback msg: " << msg->getHeaders().value("FileName");
+//    qDebug() << __PRETTY_FUNCTION__<< ":Rollback msg: " << msg->getHeaders().value("FileName");
 
     if (!processing) {
         //        qDebug() << "Wait for commit all : " << procceded << " : " << commited;
         if (commited == procceded) {
-            qDebug() << __PRETTY_FUNCTION__<< ":Procced : " << procceded << " finish: " << commited;
+//            qDebug() << __PRETTY_FUNCTION__<< ":Procced : " << procceded << " finish: " << commited;
             consuming = false;
         }
     }
@@ -289,7 +295,7 @@ void FileConsumerCommiter::commit(PMessage msg)
             QDir dir(newDirPath);
             if (!dir.exists()) {
                 dir.mkpath(".");
-                qDebug() << __PRETTY_FUNCTION__<< ":Create new dir : " << dir.absolutePath();
+//                qDebug() << __PRETTY_FUNCTION__<< ":Create new dir : " << dir.absolutePath();
             }
 
             if (QFile::exists(newDirPath + "/" + filename)) {
@@ -297,14 +303,14 @@ void FileConsumerCommiter::commit(PMessage msg)
             }
 
             if (!file->rename(newDirPath + "/" + filename)){
-                qDebug() << __PRETTY_FUNCTION__<< ":Rename fail: " << newDirPath + "/" + filename << " : " << file->error() << " : " << file->errorString();
+//                qDebug() << __PRETTY_FUNCTION__<< ":Rename fail: " << newDirPath + "/" + filename << " : " << file->error() << " : " << file->errorString();
             }
             //            msg.setBody(NULL);
         } else {
-            qDebug() << __PRETTY_FUNCTION__<< ":Msg body cast fail";
+//            qDebug() << __PRETTY_FUNCTION__<< ":Msg body cast fail";
         }
     } else {
-        qDebug() << __PRETTY_FUNCTION__<< ":Msg body is NULL";
+//        qDebug() << __PRETTY_FUNCTION__<< ":Msg body is NULL";
     }
 
     emit commited(msg);

@@ -6,6 +6,12 @@
 #include <QObject>
 #include "message.h"
 
+/**
+ * @brief The HTTPProducer class
+ * Draft HTTP post client
+ *
+ * Use case: Get message from queue by WMQConsumer and make request http by HTTPProducer
+ */
 class HTTPProducer : public QObject
 {
     Q_OBJECT

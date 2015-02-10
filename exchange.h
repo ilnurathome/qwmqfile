@@ -5,6 +5,10 @@
 #include <QHash>
 #include "message.h"
 
+/**
+ * @brief The Exchange class
+ * For future release
+ */
 class Exchange : public QObject
 {
     Q_OBJECT

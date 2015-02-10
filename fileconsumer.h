@@ -8,6 +8,11 @@
 #include "message.h"
 #include "common.h"
 
+/**
+ * @brief The FileConsumerCommiter class
+ * Multithreaded commiter
+ * FIXME Draft.
+ */
 class FileConsumerCommiter : public QObject
 {
     Q_OBJECT
@@ -74,6 +79,8 @@ public:
     QString callArchPathFuncGlobalScript();
 
     int getBatchSize() const;
+
+    static void messageDeleter(Message *msg);
 
 signals:
     void message(PMessage msg);
