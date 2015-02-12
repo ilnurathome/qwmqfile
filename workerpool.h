@@ -43,6 +43,8 @@ public:
     QObject *getWorker() const;
     void setWorker(QObject *value);
 
+    int n; // debug only
+
 signals:
     void produced(PMessage msg);
     void rollbacked(PMessage msg);

@@ -65,6 +65,22 @@ void Message::setBody(const QVariant &value)
     body = value;
 }
 
+
+QHash<QString, QVariant> &Message::getProperties()
+{
+    return properties;
+}
+
+void Message::setProperty(const QString key, const QVariant &value)
+{
+    properties.insert(key, value);
+}
+
+int Message::removeProperty(const QString key)
+{
+    return properties.remove(key);
+}
+
 Message::Message(QVariant value) : claz("Message")
 {
     body = value;
@@ -72,7 +88,7 @@ Message::Message(QVariant value) : claz("Message")
 
 Message::Message(Message* msg)
 {
-//    qDebug() << __PRETTY_FUNCTION__ << ": " << msg;
+    //    qDebug() << __PRETTY_FUNCTION__ << ": " << msg;
     if(msg)
         body = msg->getBody();
     //    qDebug() << __PRETTY_FUNCTION__;

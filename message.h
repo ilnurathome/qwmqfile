@@ -17,6 +17,9 @@ class Message
 protected:
     // FIXME to QHash<QString, QString> or to QHash<QString, QVariant>
     QHash <QString, QString> headers;
+
+    QHash <QString, QVariant> properties;
+
     QVariant body;
 
     // for trace-debug
@@ -124,6 +127,26 @@ public:
      * @param value
      */
     void setBody(const QVariant &value);
+
+    /**
+     * @brief getProperties
+     * @return
+     */
+    QHash<QString, QVariant> &getProperties();
+
+    /**
+     * @brief setProperty
+     * @param key
+     * @param value
+     */
+    void setProperty(const QString key, const QVariant &value);
+
+    /**
+     * @brief removeProperty
+     * @param key
+     * @return
+     */
+    int removeProperty(const QString key);
 };
 
 /**

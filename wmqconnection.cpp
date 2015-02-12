@@ -196,8 +196,8 @@ void WMQConnectionFactory::setChannelName(const QString &value)
 {
     channelName = value;
 }
-WMQConnectionFactory::WMQConnectionFactory() :
-    transportType(MQXPT_TCP)
+WMQConnectionFactory::WMQConnectionFactory(QObject *parent) :
+    QObject(parent), transportType(MQXPT_TCP)
 {
 }
 

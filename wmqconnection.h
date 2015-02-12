@@ -59,7 +59,7 @@ class WMQConnectionFactory : public QObject, public iConnectionFactory
     QString queueManagerName;
 
 public:
-    WMQConnectionFactory();
+    explicit WMQConnectionFactory(QObject *parent = 0);
     virtual iConnection *getConnection();
     virtual int releaseConnection(iConnection* connection);
 

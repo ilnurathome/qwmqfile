@@ -87,12 +87,13 @@ int WMQProducerThreaded::init()
         }
         threads.append(thread);
 
-        WMQProducer* worker = new WMQProducer(connectionFactory);
+        WMQProducer* worker = new WMQProducer();
         if (!worker) {
             qCritical() << __PRETTY_FUNCTION__ << ": can't create worker: " << i;
             return -1;
         }
 
+        worker->setConnectionFactory(connectionFactory);
         worker->setWorkerNumber(i);
         worker->setQueueName(queueName);
         worker->setSemaphore(semaphore);
@@ -137,9 +138,8 @@ void WMQProducerThreaded::setConnectionFactory(iConnectionFactory *value)
     connectionFactory = value;
 }
 
-WMQProducerThreaded::WMQProducerThreaded(iConnectionFactory* connectionFactory) : commiterThread(NULL), workerCounter(0), semaphore(NULL)
+WMQProducerThreaded::WMQProducerThreaded(QObject *parent) : QObject(parent), connectionFactory(NULL), commiterThread(NULL), workerCounter(0), semaphore(NULL)
 {
-    this->connectionFactory = connectionFactory;
     maxWorkers = 4;
     commiter = new WMQProducerCommiter();
 }
@@ -334,13 +334,7 @@ void WMQProducer::setSemaphore(QSemaphore *value)
 {
     semaphore = value;
 }
-WMQProducer::WMQProducer() : connectionFactory(NULL), connection(NULL), inuse(false), semaphore(NULL)
-{
-    QObject::connect(this, SIGNAL(got(PMessage)), this, SLOT(produce(PMessage)), Qt::QueuedConnection);
-    qDebug() << __PRETTY_FUNCTION__;
-}
-
-WMQProducer::WMQProducer(iConnectionFactory *_connectionFactory) : connectionFactory(_connectionFactory), connection(NULL), inuse(false), semaphore(NULL)
+WMQProducer::WMQProducer(QObject *parent) : QObject(parent), connectionFactory(NULL), connection(NULL), inuse(false), semaphore(NULL)
 {
     QObject::connect(this, SIGNAL(got(PMessage)), this, SLOT(produce(PMessage)), Qt::QueuedConnection);
     qDebug() << __PRETTY_FUNCTION__;
@@ -512,6 +506,12 @@ QScriptValue WMQProducerCommiterConstructor(QScriptContext *context, QScriptEngi
 {
     QObject *object = new WMQProducerCommiter();
     return engine->newQObject(object, QScriptEngine::ScriptOwnership);
+}
+
+WMQProducerCommiter::WMQProducerCommiter(QObject *parent) :
+    QObject(parent)
+{
+
 }
 
 bool WMQProducerCommiter::initScriptEngine(QScriptEngine &engine)

@@ -126,7 +126,7 @@ void TFileConsumer::setBatchSize(int value)
     batchSize = value;
 }
 
-TFileConsumer::TFileConsumer() : commiterThread(NULL), commiter(NULL), isquit(false)
+TFileConsumer::TFileConsumer(QObject *parent) : QObject(parent), commiterThread(NULL), commiter(NULL), isquit(false)
 {
     consuming = false;
     batchSize = 10;
@@ -258,6 +258,12 @@ QString TFileConsumerCommiter::getArchPath() const
 void TFileConsumerCommiter::setArchPath(const QString &value)
 {
     archPath = value;
+}
+
+TFileConsumerCommiter::TFileConsumerCommiter(QObject *parent) :
+    QObject(parent)
+{
+
 }
 
 bool TFileConsumerCommiter::initScriptEngine(QScriptEngine &engine)

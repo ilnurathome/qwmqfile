@@ -18,15 +18,18 @@ class RabbitMQProducer : public QObject
     QString exchangeName;
     QString routingKeyName;
 
+    uint8_t defaultDeliveryMode;
+protected:
+    void handleError(int r);
+
 public:
-    RabbitMQProducer();
-    RabbitMQProducer(RabbitMQConnectionFactory *value);
+    explicit RabbitMQProducer(QObject *parent = 0);
     ~RabbitMQProducer();
 
 //    static bool initScriptEngine(QScriptEngine &engine);
 
     QString getRoutingKey() const;
-    void setRoutingKey(const QString &value);
+    uint8_t getDefaultDeliveryMode() const;
 
 signals:
     void produced(PMessage msg);
@@ -38,7 +41,9 @@ public slots:
     void produce(PMessage message);
     void setQueueName(const QString &value);
     void setExchangeName(const QString &value);
-    void setWorkerNumber(int n);
+
+    void setDefaultDeliveryMode(uint8_t value);
+    void setRoutingKey(const QString &value);
 
     void setConnectionFactory(RabbitMQConnectionFactory *value);
 

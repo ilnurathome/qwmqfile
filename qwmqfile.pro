@@ -35,7 +35,9 @@ SOURCES += main.cpp \
     rabbitmqproducer.cpp \
     rabbitmqconnection.cpp \
     rabbitmqconsumer.cpp \
-    workerpool.cpp
+    workerpool.cpp \
+    amqpconnection.cpp \
+    amqpproducer.cpp
 
 HEADERS += \
     fileconsumer.h \
@@ -58,7 +60,9 @@ HEADERS += \
     rabbitmqproducer.h \
     rabbitmqconnection.h \
     rabbitmqconsumer.h \
-    workerpool.h
+    workerpool.h \
+    amqpconnection.h \
+    amqpproducer.h
 
 
 win32:INCLUDEPATH += "C:/Program Files/IBM/WebSphere MQ/tools/cplus/include" \
@@ -68,14 +72,21 @@ win32:INCLUDEPATH += "C:/Program Files/IBM/WebSphere MQ/tools/cplus/include" \
 win32:LIBS += "c:/Program Files/IBM/WebSphere MQ/tools/Lib/imqb23vn.Lib" \
 "c:/Program Files/IBM/WebSphere MQ/tools/Lib/imqc23vn.Lib"
 
-unix:INCLUDEPATH += /opt/mqm/inc
+unix:INCLUDEPATH += /opt/mqm/inc \
+/opt/qpid/include
+
 unix:LIBS += /opt/mqm/lib64/libmqic_r.so \
 /opt/mqm/lib64/libmqe_r.so \
 /opt/mqm/lib64/libmqecs_r.so \
 /opt/mqm/lib64/libmqm_r.so \
 /opt/mqm/lib64/4.1/libimqb23gl_r.so \
 /opt/mqm/lib64/4.1/libimqc23gl_r.so \
--lrabbitmq
+-lrabbitmq \
+/opt/qpid/lib/libqpidmessaging.so.2.0.0 \
+/opt/qpid/lib/libqpidtypes.so.1.0.0 \
+/opt/qpid/lib/libqpidcommon.so.2.0.0 \
+/opt/qpid/lib/libqpid-proton.so.2.0.0 \
+/opt/qpid/lib/libqpidclient.so.2.0.0
 
 OTHER_FILES += \
     context.qs

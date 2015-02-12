@@ -13,6 +13,7 @@ class WMQProducerCommiter : public QObject
 {
     Q_OBJECT
 public:
+    explicit WMQProducerCommiter(QObject *parent = 0);
     static bool initScriptEngine(QScriptEngine &engine);
 
 signals:
@@ -43,8 +44,7 @@ class WMQProducer : public QObject
     QSemaphore *semaphore;
 
 public:
-    WMQProducer();
-    WMQProducer(iConnectionFactory* _connectionFactory);
+    explicit WMQProducer(QObject *parent = 0);
     ~WMQProducer();
 
     static bool initScriptEngine(QScriptEngine &engine);
@@ -103,7 +103,7 @@ class WMQProducerThreaded : public QObject
     QSemaphore *semaphore;
 
 public:
-    WMQProducerThreaded(iConnectionFactory* connectionFactory=0);
+    explicit WMQProducerThreaded(QObject *parent = 0);
     ~WMQProducerThreaded();
 
     static bool initScriptEngine(QScriptEngine &engine);

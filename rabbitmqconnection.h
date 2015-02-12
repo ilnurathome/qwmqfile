@@ -31,6 +31,10 @@ public:
 
     virtual int open();
     virtual int close();
+    int reset();
+    int openChannel();
+    int closeChannel();
+    int resetChannel();
 
     amqp_connection_state_t &getConn();
 
@@ -46,7 +50,7 @@ public:
     QString getPassword() const;
     void setPassword(const QString &value);
     amqp_channel_t getChannel() const;
-    void setChannel(amqp_channel_t value);
+//    void setChannel(amqp_channel_t value);
 };
 
 class RabbitMQConnectionFactory : public QObject, public iConnectionFactory
@@ -60,7 +64,7 @@ class RabbitMQConnectionFactory : public QObject, public iConnectionFactory
     QString password;
 
 public:
-    RabbitMQConnectionFactory();
+    explicit RabbitMQConnectionFactory(QObject *parent = 0);
     virtual RabbitMQConnection *getConnection();
     virtual int releaseConnection(iConnection* connection);
 
@@ -84,5 +88,7 @@ public slots:
 extern amqp_bytes_t amqp_qbytearray_bytes(QByteArray ba);
 extern const char *amqp_rpc_reply_string(amqp_rpc_reply_t r);
 extern const char *amqp_server_exception_string(amqp_rpc_reply_t r);
+extern const char *amqp_server_exception_string(amqp_method_t r);
+
 
 #endif // RABBITMQCONNECTION_H

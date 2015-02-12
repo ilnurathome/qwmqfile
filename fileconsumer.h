@@ -23,6 +23,7 @@ class FileConsumerCommiter : public QObject
     STD_FUNCTION<QString()> archPathFunc;
 
 public:
+    explicit FileConsumerCommiter(QObject *parent = 0);
     static bool initScriptEngine(QScriptEngine &engine);
 
     QString getArchPath() const;
@@ -63,7 +64,7 @@ class FileConsumer : public QObject
     bool isquit;
 
 public:
-    FileConsumer();
+    explicit FileConsumer(QObject *parent = 0);
     ~FileConsumer();
     bool valid(const QString& filename);
 

@@ -17,6 +17,7 @@ class TFileConsumerCommiter : public QObject
     STD_FUNCTION<QString()> archPathFunc;
 
 public:
+    explicit TFileConsumerCommiter(QObject *parent = 0);
     static bool initScriptEngine(QScriptEngine &engine);
 
     QString getArchPath() const;
@@ -56,7 +57,7 @@ class TFileConsumer : public QObject
     bool isquit;
 
 public:
-    TFileConsumer();
+    explicit TFileConsumer(QObject *parent = 0);
     ~TFileConsumer();
     bool valid(const QString& filename);
 
