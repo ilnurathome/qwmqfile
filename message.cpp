@@ -18,7 +18,7 @@ QHash<QString, QString>& Message::getHeaders()
     return headers;
 }
 
-QString Message::getHeader(QString& key)
+QString Message::getHeader(const QString& key)
 {
     return headers.value(key);
 }

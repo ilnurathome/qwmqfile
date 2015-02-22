@@ -76,7 +76,7 @@ public:
      * @param key
      * @return
      */
-    QString getHeader(QString& key);
+    QString getHeader(const QString& key);
 
     /**
      * @brief getEmiter

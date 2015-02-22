@@ -633,7 +633,8 @@ int test_file2amqp(int argc, char *argv[])
     for (int i=0; i<1; i++) {
         AMQPProducer *producer = new AMQPProducer();
         producer->setConnectionFactory(&connectionFactory);
-        producer->setAddress("amqp://client:client@localhost//exchange/client.Q/Q0");
+//        producer->setAddress("amqp://client:client@localhost//exchange/client.Q/Q0");
+        producer->setAddress("amqp://producer:producer@localhost/producer.Q/Q0");
 
         WorkerProxy *proxy = new WorkerProxy();
         proxy->setWorker(producer);
@@ -652,6 +653,57 @@ int test_file2amqp(int argc, char *argv[])
     return a.exec();
 }
 
+int test_file2amqp010(int argc, char *argv[])
+{
+    QCoreApplication a(argc, argv);
+
+    FileConsumer consumer;
+    consumer.setBatchSize(10000);
+    consumer.setPath("/tmp/filewmq/swifts");
+    consumer.setArchPath("/tmp/filewmq/arch");
+    //    consumer.setPath("c:/temp/filewmq/swifts");
+    //    consumer.setArchPath("c:/temp/filewmq/arch");
+    consumer.init();
+
+    QTimer timer;
+    QObject::connect(&timer, SIGNAL(timeout()), &consumer, SLOT(consume()));
+    timer.start(500);
+
+    AMQP010ConnectionFactory connectionFactory;
+    connectionFactory.setUrl(QUrl("localhost"));
+    connectionFactory.setUsername("producer");
+    connectionFactory.setPassword("producer");
+    connectionFactory.setTransactional(false);
+//    connectionFactory.setProtocol("amqp1.0");
+
+    QList<AMQP010Producer*> mqProducers;
+    QList<WorkerProxy*> workerProxies;
+
+    WorkerPool workPool;
+    workPool.initCommiter();
+
+    for (int i=0; i<1; i++) {
+        AMQP010Producer *producer = new AMQP010Producer();
+        producer->setConnectionFactory(&connectionFactory);
+        producer->setAddress("producer.Q");
+        producer->setSubject("Q0");
+
+        WorkerProxy *proxy = new WorkerProxy();
+        proxy->setWorker(producer);
+        proxy->n = i;
+        workerProxies.append(proxy);
+        workPool.append(proxy);
+    }
+
+    workPool.init();
+
+    QObject::connect(&consumer, SIGNAL(message(PMessage)), &workPool, SLOT(produce(PMessage)));
+
+    QObject::connect(workPool.getCommiter(), SIGNAL(commited(PMessage)), consumer.getCommiter(), SLOT(commit(PMessage)));
+    QObject::connect(workPool.getCommiter(), SIGNAL(rollbacked(PMessage)), consumer.getCommiter(), SLOT(rollback(PMessage)));
+
+    return a.exec();
+}
 
 int main(int argc, char *argv[])
 {
@@ -665,4 +717,5 @@ int main(int argc, char *argv[])
 //    return test_file2rabbitmq(argc, argv);
     //    return test_rabbitmq2rabbitmq(argc, argv);
         return test_file2amqp(argc, argv);
+//    return test_file2amqp010(argc, argv);
 }

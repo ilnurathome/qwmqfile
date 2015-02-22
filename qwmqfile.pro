@@ -37,7 +37,8 @@ SOURCES += main.cpp \
     rabbitmqconsumer.cpp \
     workerpool.cpp \
     amqpconnection.cpp \
-    amqpproducer.cpp
+    amqpproducer.cpp \
+    protonmessengerproxy.cpp
 
 HEADERS += \
     fileconsumer.h \
@@ -62,7 +63,8 @@ HEADERS += \
     rabbitmqconsumer.h \
     workerpool.h \
     amqpconnection.h \
-    amqpproducer.h
+    amqpproducer.h \
+    protonmessengerproxy.h
 
 
 win32:INCLUDEPATH += "C:/Program Files/IBM/WebSphere MQ/tools/cplus/include" \
