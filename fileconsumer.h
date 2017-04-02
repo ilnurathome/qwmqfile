@@ -7,6 +7,7 @@
 
 #include "message.h"
 #include "common.h"
+#include "indeponentstorage.h"
 
 /**
  * @brief The FileConsumerCommiter class
@@ -61,6 +62,8 @@ class FileConsumer : public QObject
     QThread *commiterThread;
     FileConsumerCommiter *commiter;
 
+    IndeponentStorage<QString> *indeponentStorage;
+
     bool isquit;
 
 public:
@@ -83,6 +86,8 @@ public:
 
     static void messageDeleter(Message *msg);
 
+    IndeponentStorage<QString> *getIndeponentStorage() const;
+
 signals:
     void message(PMessage msg);
 
@@ -104,6 +109,8 @@ public slots:
     void setArchPathFuncGlobal(const QString &value);
 
     QObject *getCommiter();
+    void setIndeponentStorage(IndeponentStorage<QString> *value);
+
     void moveToThread(QObject *thread);
 
     void quit();

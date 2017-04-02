@@ -5,7 +5,7 @@ Message *proton_message_conv(pn_message_t *message)
 {
     Message *newmsg = new Message(QByteArray());
 
-    pn_data_t data = pn_message_properties(message);
+    pn_data_t *data = pn_message_properties(message);
 
     while(pn_data_next(data)) {
         pn_type_t type = pn_data_type(data);
@@ -53,8 +53,8 @@ void ProtonMessengerProxy::rollback(PMessage msg)
 
 void ProtonMessengerProxy::produce(PMessage msg)
 {
-    pn_message_t * msg;
-    msg = pn_message();
+    pn_message_t * messege;
+    messege = pn_message();
     //FIXME
 
 }

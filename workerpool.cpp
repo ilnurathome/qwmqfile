@@ -84,7 +84,6 @@ int WorkerPool::append(WorkerProxy *worker)
     }
     threads.append(thread);
 
-//    worker->setSemaphore(semaphore);
     worker->moveToThread(thread);
 
     workers.append(worker);
@@ -145,7 +144,6 @@ bool WorkerProxy::produce(PMessage msg)
 {
     QReadLocker locker(&lock);
     if (inuse) {
-        //        qDebug() << "WMQProducer: " << workerNumber << " in use.";
         return false;
     }
 

@@ -19,6 +19,7 @@
 #include "workerpool.h"
 #include "amqpconnection.h"
 #include "amqpproducer.h"
+#include "indeponentstorage.h"
 
 #ifndef _WIN32
 #include <csignal>
@@ -109,10 +110,13 @@ int test_file2wmq(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
 
+    IndeponentMemoryStorage<QString> indeponentMemoryStorage;
+
     FileConsumer consumer;
     consumer.setBatchSize(10000);
     consumer.setPath("/tmp/filewmq/swifts");
     consumer.setArchPath("/tmp/filewmq/arch");
+    consumer.setIndeponentStorage((IndeponentStorage<QString>*)&indeponentMemoryStorage);
     //    consumer.setPath("c:/temp/filewmq/swifts");
     //    consumer.setArchPath("c:/temp/filewmq/arch");
     consumer.init();
@@ -126,28 +130,47 @@ int test_file2wmq(int argc, char *argv[])
     connectionFactory.setConnectionName("192.168.56.3(1414)");
     connectionFactory.setChannelName("CPROGRAM.CHANNEL");
 
-    ConnectionPool pool;
-    pool.setConnectionFactory(&connectionFactory);
-    pool.setMaxConnections(24);
+    QList<WMQProducer*> mqProducers;
+    QList<WorkerProxy*> workerProxies;
 
-    //    qDebug() << "Create producer 1";
-    WMQProducerThreaded producer;
-    producer.setConnectionFactory((iConnectionFactory *)&pool);
-    producer.setQueueName("Q");
-    producer.setMaxWorkers(8);
-    producer.init();
+    WorkerPool workPool;
+    workPool.initCommiter();
 
-    QObject::connect(&consumer, SIGNAL(message(PMessage)), &producer, SLOT(produce(PMessage)));
+    for (int i=0; i<4; i++) {
+        WMQProducer *producer = new WMQProducer();
+        producer->setConnectionFactory(&connectionFactory);
+        producer->setQueueName("Q");
 
-    QObject::connect(producer.getCommiter(), SIGNAL(commited(PMessage)), consumer.getCommiter(), SLOT(commit(PMessage)));
-    QObject::connect(producer.getCommiter(), SIGNAL(rollbacked(PMessage)), consumer.getCommiter(), SLOT(rollback(PMessage)));
+        WorkerProxy *proxy = new WorkerProxy();
+        proxy->setWorker(producer);
+        proxy->n = i;
+        workerProxies.append(proxy);
+        workPool.append(proxy);
+        mqProducers.append(producer);
+    }
 
+    workPool.init();
 
-    //    QObject::connect(&producer, SIGNAL(produced(Message)), &consumer, SLOT(commit(Message)));
-    //    QObject::connect(&producer, SIGNAL(rollback(Message)), &consumer, SLOT(rollback(Message)));
+    QObject::connect(&consumer, SIGNAL(message(PMessage)), &workPool, SLOT(produce(PMessage)));
 
+    QObject::connect(workPool.getCommiter(), SIGNAL(commited(PMessage)), consumer.getCommiter(), SLOT(commit(PMessage)));
+    QObject::connect(workPool.getCommiter(), SIGNAL(rollbacked(PMessage)), consumer.getCommiter(), SLOT(rollback(PMessage)));
 
-    return a.exec();
+    int ret = a.exec();
+
+    while(!workerProxies.empty()) {
+        WorkerProxy *o = workerProxies.takeLast();
+        if (o)
+            delete o;
+    }
+
+    while(!mqProducers.empty()) {
+        WMQProducer *o = mqProducers.takeLast();
+        if (o)
+            delete o;
+    }
+
+    return ret;
 }
 
 int test_wmq2wmq(int argc, char *argv[])
@@ -510,7 +533,7 @@ int test_file2rabbitmq(int argc, char *argv[])
 
     RabbitMQConnectionFactory connectionFactory;
     connectionFactory.setHostname("localhost");
-//        connectionFactory.setHostname("192.168.56.3");
+    //        connectionFactory.setHostname("192.168.56.3");
     connectionFactory.setPort(5672);
     connectionFactory.setLogin("client");
     connectionFactory.setPassword("client");
@@ -531,9 +554,9 @@ int test_file2rabbitmq(int argc, char *argv[])
         producer->setConnectionFactory(&connectionFactory);
         producer->setExchangeName("client.Q");
         //        producer->setRoutingKey("#");
-                producer->setRoutingKey("Q0");
-                producer->setDefaultDeliveryMode(1);
-//        producer->setRoutingKey(QString("Q%1").arg(i));
+        producer->setRoutingKey("Q0");
+        producer->setDefaultDeliveryMode(1);
+        //        producer->setRoutingKey(QString("Q%1").arg(i));
 
         WorkerProxy *proxy = new WorkerProxy();
         proxy->setWorker(producer);
@@ -633,7 +656,7 @@ int test_file2amqp(int argc, char *argv[])
     for (int i=0; i<1; i++) {
         AMQPProducer *producer = new AMQPProducer();
         producer->setConnectionFactory(&connectionFactory);
-//        producer->setAddress("amqp://client:client@localhost//exchange/client.Q/Q0");
+        //        producer->setAddress("amqp://client:client@localhost//exchange/client.Q/Q0");
         producer->setAddress("amqp://producer:producer@localhost/producer.Q/Q0");
 
         WorkerProxy *proxy = new WorkerProxy();
@@ -674,7 +697,7 @@ int test_file2amqp010(int argc, char *argv[])
     connectionFactory.setUsername("producer");
     connectionFactory.setPassword("producer");
     connectionFactory.setTransactional(false);
-//    connectionFactory.setProtocol("amqp1.0");
+    //    connectionFactory.setProtocol("amqp1.0");
 
     QList<AMQP010Producer*> mqProducers;
     QList<WorkerProxy*> workerProxies;
@@ -709,13 +732,13 @@ int main(int argc, char *argv[])
 {
     qRegisterMetaType<Message>("Message");
     qRegisterMetaType<PMessage>("PMessage");
-    //    return test_file2wmq(argc, argv);
+    return test_file2wmq(argc, argv);
     //    return test_wmq2wmq(argc, argv);
     //    return test_fileconv(argc, argv);
     //    return test_filehttpfile(argc, argv);
     //     return test_badfileconv(argc, argv);
-//    return test_file2rabbitmq(argc, argv);
+    //    return test_file2rabbitmq(argc, argv);
     //    return test_rabbitmq2rabbitmq(argc, argv);
-        return test_file2amqp(argc, argv);
-//    return test_file2amqp010(argc, argv);
+    //        return test_file2amqp(argc, argv);
+    //    return test_file2amqp010(argc, argv);
 }

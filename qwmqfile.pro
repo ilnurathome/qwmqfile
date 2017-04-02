@@ -64,7 +64,8 @@ HEADERS += \
     workerpool.h \
     amqpconnection.h \
     amqpproducer.h \
-    protonmessengerproxy.h
+    protonmessengerproxy.h \
+    indeponentstorage.h
 
 
 win32:INCLUDEPATH += "C:/Program Files/IBM/WebSphere MQ/tools/cplus/include" \

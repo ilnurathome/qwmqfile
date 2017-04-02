@@ -66,9 +66,8 @@ class WorkerPool : public QObject
     QList<WorkerProxy*> workers;
 
     QThread *commiterThread;
-    WorkerCommiter *commiter;
 
-//    int maxWorkers;
+    WorkerCommiter *commiter;
 
     int workerCounter;
 
@@ -86,13 +85,11 @@ signals:
 
 public slots:
     void produce(PMessage msg);
-//    void setMaxWorkers(int value);
     int init();
     int initCommiter();
-    int append(WorkerProxy *worker);
+    int append(WorkerProxy *worker = NULL);
 
     WorkerCommiter *getCommiter();
-
 };
 
 #endif // WORKERPOOL_H
